@@ -1,13 +1,15 @@
-import os
+from collections import Counter
 from torch.utils.data import Dataset
 from PIL import Image
+
 
 class SkinDataset(Dataset):
     def __init__(self, paths, labels=None, transform=None, inference=False):
         """
         Args:
             paths (list): List of file paths to the images.
-            labels (list, optional): List of corresponding class IDs for the images. Required if inference=False.
+            labels (list, optional): List of corresponding class IDs for the images. 
+                                    Required if inference=False.
             transform (callable, optional): Optional transform to apply to the images.
             inference (bool): If True, the dataset will not expect labels (default=False).
         """
@@ -34,7 +36,7 @@ class SkinDataset(Dataset):
 
     def _get_class_distribution(self):
         """Calculate the class distribution."""
-        from collections import Counter
+
         if self.labels:
             class_counts = Counter(self.labels)
             return dict(class_counts)
@@ -52,7 +54,7 @@ class SkinDataset(Dataset):
             image = self.transform(image)
 
         if self.inference:
-            return image
-        else:
-            label = self.labels[idx]
-            return image, label
+            return image       
+        
+        label = self.labels[idx]
+        return image, label

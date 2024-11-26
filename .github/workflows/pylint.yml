@@ -1,6 +1,20 @@
 name: Pylint
 
-on: [push]
+on: 
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - 'datasets/**'
+      - '.github/**'
+      - 'data/**'
+      - 'assets/**'
+      - 'notebooks/**'
+      - 'logs/**'
+      - 'reports/**'
+      - '**/__pycache__/**'
+      - '**/*.ipynb'
 
 jobs:
   build:

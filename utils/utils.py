@@ -121,14 +121,16 @@ def test(model, dataloader, criterion, device, monitor):
 
             # Forward pass
             outputs = model(inputs)
-            loss = criterion(outputs, labels)
+            if criterion is not None:
+                loss = criterion(outputs, labels)
 
             # Metrics
             _, predicted = torch.max(outputs, 1)
             correct = (predicted == labels).sum().item()
             accuracy = correct / labels.size(0)
 
-            monitor.update("loss", loss.item(), count=labels.size(0))
+            if criterion is not None:
+                monitor.update("loss", loss.item(), count=labels.size(0))
             monitor.update("accuracy", accuracy, count=labels.size(0))
             monitor.print_iteration(iteration, total_iterations, phase="Test")
     monitor.print_final(phase="Test")

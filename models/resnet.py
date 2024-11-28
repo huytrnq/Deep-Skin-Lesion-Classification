@@ -10,17 +10,7 @@ from torchvision import models
 
 class LoRAConv2d(nn.Module):
     """Low-Rank Adaptation for convolutional layers."""
-
-    def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        rank=4,
-        bias=True,
-    ):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, rank=4, bias=True):
         """
         Low-Rank Adaptation for convolutional layers.
         """
@@ -28,16 +18,12 @@ class LoRAConv2d(nn.Module):
         self.rank = rank
 
         # Base convolutional layer (frozen during training)
-        self.base_layer = nn.Conv2d(
-            in_channels, out_channels, kernel_size, stride, padding, bias=bias
-        )
+        self.base_layer = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, bias=bias)
         for param in self.base_layer.parameters():
             param.requires_grad = False  # Freeze original weights
 
         # Low-rank adaptation
-        self.lora_A = nn.Parameter(
-            torch.zeros(rank, in_channels, kernel_size, kernel_size)
-        )
+        self.lora_A = nn.Parameter(torch.zeros(rank, in_channels, *kernel_size))  # Unpacking kernel_size tuple
         self.lora_B = nn.Parameter(torch.zeros(out_channels, rank, 1, 1))
 
         # Initialization
@@ -47,25 +33,18 @@ class LoRAConv2d(nn.Module):
     def forward(self, x):
         """
         Forward pass with Low-Rank Adaptation.
-        
         Args: x (torch.Tensor): Input tensor.
         Returns: torch.Tensor: Output tensor.
         """
         base_output = self.base_layer(x)  # Original output (frozen weights)
-        lora_update = nn.functional.conv2d(
-            x,
-            self.lora_A,
-            bias=None,
-            stride=self.base_layer.stride,
-            padding=self.base_layer.padding,
-        )
+        lora_update = nn.functional.conv2d(x, self.lora_A, bias=None, stride=self.base_layer.stride, padding=self.base_layer.padding)
         lora_update = nn.functional.conv2d(lora_update, self.lora_B, bias=None)
         return base_output + lora_update
 
 
 class ResNetLoRA(nn.Module):
     """ResNet model with Low-Rank Adaptation (LoRA) applied to convolutional layers in each block."""
-
+    name = "ResNetLoRA"
     def __init__(self, base_model_name="resnet50", rank=4, weights=None):
         """
         ResNet model with Low-Rank Adaptation (LoRA) applied to convolutional layers in each block.

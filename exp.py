@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms, models
+from torchvision.models.resnet import ResNet50_Weights
 
 from utils.dataset import SkinDataset
 from utils.utils import train, validate, test, load_data_file
@@ -73,7 +74,7 @@ if __name__ == "__main__":
     print("================== Test dataset Info: ==================\n", test_dataset)
 
     # Model
-    model = models.resnet50(pretrained=False)
+    model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
     model.fc = torch.nn.Linear(model.fc.in_features, len(CLASSES))
     model = model.to(DEVICE)
 

@@ -1,27 +1,31 @@
+"""Utility functions for training and testing the model."""
+
 import torch
+
 
 def load_data_file(input_file):
     """Load image paths and labels from txt file.
 
     Args:
         input_file (str): Path to the input file.
-    
+
     Returns:
         list: List of image paths.
         list: List of labels.
     """
     paths, labels = [], []
-    with open(input_file, 'r', encoding='utf-8') as f:
+    with open(input_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            path, class_id = line.rsplit(' ', 1)
+            path, class_id = line.rsplit(" ", 1)
             # Append the path and label
             paths.append(path)
             labels.append(int(class_id))
 
     return paths, labels
+
 
 def train(model, dataloader, criterion, optimizer, device, monitor):
     """

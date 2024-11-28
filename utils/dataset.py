@@ -1,3 +1,8 @@
+"""
+This module contains a custom PyTorch dataset class for the skin lesion dataset.
+It is used to load the images and their corresponding labels (if available) from the disk.
+"""
+
 from collections import Counter
 from torch.utils.data import Dataset
 from PIL import Image
@@ -8,7 +13,7 @@ class SkinDataset(Dataset):
         """
         Args:
             paths (list): List of file paths to the images.
-            labels (list, optional): List of corresponding class IDs for the images. 
+            labels (list, optional): List of corresponding class IDs for the images.
                                     Required if inference=False.
             transform (callable, optional): Optional transform to apply to the images.
             inference (bool): If True, the dataset will not expect labels (default=False).
@@ -54,7 +59,7 @@ class SkinDataset(Dataset):
             image = self.transform(image)
 
         if self.inference:
-            return image       
-        
+            return image
+
         label = self.labels[idx]
         return image, label

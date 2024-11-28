@@ -1,4 +1,10 @@
+"""
+This module contains a class for tracking metrics and implementing early stopping.
+It is used to monitor the performance of the model during training and validation.
+"""
+
 import torch
+
 
 class MetricsMonitor:
     def __init__(self, metrics=None, patience=5, delta=0.0001, mode="min"):
@@ -68,8 +74,11 @@ class MetricsMonitor:
         metrics_str = ", ".join(
             f"{metric}: {self.compute_average(metric):.4f}" for metric in self.metrics
         )
-        print(f"\r[{phase}] Iteration {iteration}/{total_iterations} - {metrics_str}", 
-                end="", flush=True)
+        print(
+            f"\r[{phase}] Iteration {iteration}/{total_iterations} - {metrics_str}",
+            end="",
+            flush=True,
+        )
 
     def print_final(self, phase="Train"):
         """
@@ -112,4 +121,3 @@ class MetricsMonitor:
         """Save the best model."""
         torch.save(model.state_dict(), "best_model.pth")
         print("Model improved and saved!\n")
-        

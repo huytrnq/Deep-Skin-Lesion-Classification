@@ -4,6 +4,7 @@ It uses MLflow for tracking experiments and PyTorch for model training.
 """
 
 import os
+import argparse
 import mlflow
 import mlflow.pytorch
 from sklearn.model_selection import train_test_split
@@ -17,36 +18,56 @@ from utils.utils import train, validate, test, load_data_file
 from utils.metric import MetricsMonitor
 from models.resnet import ResNetLoRA
 
-# MLflow Experiment Setup
-mlflow.set_experiment("Skin Lesion Classification")
 
-# Data Transformations
-transform = transforms.Compose(
-    [
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomAffine(
-            degrees=15,
-            translate=(0.1, 0.1),
-        ),
-        transforms.Resize((400, 400)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ]
-)
+def arg_parser():
+    """Arg parser
 
-# Constants
-CLASSES = ["nevus", "others"]
-BATCH_SIZE = 64
-EPOCHS = 100
-LR = 0.001
-WORKERS = os.cpu_count()
-DEVICE = (
-    "mps"
-    if torch.backends.mps.is_available()
-    else "cuda" if torch.cuda.is_available() else "cpu"
-)
+    Returns:
+        argparse.Namespace: command line
+    """
+    parser = argparse.ArgumentParser(
+        description="Skin Lesion Classification Experiment"
+    )
+    parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
+    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
+    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
+    parser.add_argument(
+        "--workers", type=int, default=os.cpu_count(), help="Number of workers"
+    )
+
+    return parser.parse_args()
+
 
 if __name__ == "__main__":
+    args = arg_parser()
+    # MLflow Experiment Setup
+    mlflow.set_experiment("Skin Lesion Classification")
+
+    # Data Transformations
+    transform = transforms.Compose(
+        [
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomAffine(
+                degrees=15,
+                translate=(0.1, 0.1),
+            ),
+            transforms.Resize((400, 400)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
+
+    # Constants
+    CLASSES = ["nevus", "others"]
+    BATCH_SIZE = args.batch_size
+    EPOCHS = args.epochs
+    LR = args.lr
+    WORKERS = args.workers
+    DEVICE = (
+        "mps"
+        if torch.backends.mps.is_available()
+        else "cuda" if torch.cuda.is_available() else "cpu"
+    )
 
     # Load data paths and labels
     train_path, train_labels = load_data_file("datasets/train.txt")

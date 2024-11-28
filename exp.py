@@ -1,3 +1,8 @@
+"""
+This script trains and validates a deep learning model for skin lesion classification.
+It uses MLflow for tracking experiments and PyTorch for model training.
+"""
+
 import os
 import mlflow
 import mlflow.pytorch

@@ -15,6 +15,7 @@ from torchvision.models.resnet import ResNet50_Weights
 from utils.dataset import SkinDataset
 from utils.utils import train, validate, test, load_data_file
 from utils.metric import MetricsMonitor
+from models.resnet import ResNetLoRA
 
 # MLflow Experiment Setup
 mlflow.set_experiment("Skin Lesion Classification")
@@ -27,7 +28,7 @@ transform = transforms.Compose(
             degrees=15,
             translate=(0.1, 0.1),
         ),
-        transforms.Resize((224, 224)),
+        transforms.Resize((400, 400)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ]
@@ -37,7 +38,7 @@ transform = transforms.Compose(
 CLASSES = ["nevus", "others"]
 BATCH_SIZE = 64
 EPOCHS = 100
-LR = 0.01
+LR = 0.001
 WORKERS = os.cpu_count()
 DEVICE = (
     "mps"
@@ -75,6 +76,9 @@ if __name__ == "__main__":
 
     # Model
     model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
+    ## Freeze all layers
+    for param in model.parameters():
+        param.requires_grad = False
     model.fc = torch.nn.Linear(model.fc.in_features, len(CLASSES))
     model = model.to(DEVICE)
 
@@ -94,6 +98,8 @@ if __name__ == "__main__":
         mlflow.log_param("learning_rate", LR)
         mlflow.log_param("epochs", EPOCHS)
         mlflow.log_param("device", DEVICE)
+        mlflow.log_param("classes", CLASSES)
+        mlflow.log_param("model", model.__class__.__name__)
 
         # Training Loop
         for epoch in range(EPOCHS):

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Root directory containing class folders
-ROOT_DIR=/Users/huytrq/Workspace/UdG/CAD/Data/Challenge1/val
+ROOT_DIR=/root/huy/datasets/Binary/val
 OUTPUT_FILE=val.txt
 
 # Ensure the root directory exists

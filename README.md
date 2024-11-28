@@ -4,9 +4,10 @@ This project is skin classification task to classify skin lesion, which is part 
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Dataset](#dataset)
-3. [Model](#model)
-4. [Results](#results)
-5. [References](#references)
+3. [Todos](#todos)
+4. [Model](#model)
+5. [Results](#results)
+6. [References](#references)
 
 ## Introduction
 Skin cancer is the most common type of cancer, and early detection is crucial for successful treatment. The goal of this project is to develop a machine learning model for 2 challenging tasks: binary classification of benign and malignant skin lesions and three classes classification of Melanoma, Basal Cell Carcinoma, and Squamous Cell Carcinoma.
@@ -28,3 +29,14 @@ The dataset consists of more than 15,000 images for binary classification and ar
 <p align="center">
     Distribution of three classes in the dataset.
 </p>
+
+## Todos
+- [x] Data Augmentation
+- [x] mlflow monitoring
+- [x] Model Training
+- [x] Model Evaluation
+- [ ] Experiments
+    - [ ] Finetuning
+    - [ ] Transfer Learning
+
+

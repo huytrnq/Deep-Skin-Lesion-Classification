@@ -126,3 +126,6 @@ cython_debug/
 
 #others
 mlruns/
+*.ipynb_checkpoints/
+*.pth
+.vscode/

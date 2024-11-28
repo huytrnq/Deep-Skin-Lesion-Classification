@@ -9,6 +9,8 @@ from PIL import Image
 
 
 class SkinDataset(Dataset):
+    """Custom PyTorch dataset for the skin lesion dataset."""
+
     def __init__(self, paths, labels=None, transform=None, inference=False):
         """
         Args:

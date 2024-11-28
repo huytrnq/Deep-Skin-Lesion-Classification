@@ -7,6 +7,8 @@ import torch
 
 
 class MetricsMonitor:
+    """Monitor for tracking metrics and implementing early stopping."""
+
     def __init__(self, metrics=None, patience=5, delta=0.0001, mode="min"):
         """
         Combines metric tracking and early stopping with real-time updates.

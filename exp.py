@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, models
 from torchvision.models.resnet import ResNet50_Weights
 from torchvision.models.efficientnet import EfficientNet_B2_Weights
-from torchvision.models.resnext101_32x8d import ResNeXt101_32X8D_Weights
+from torchvision.models import resnext101_32x8d, ResNeXt101_32X8D_Weights
 from torch.optim.lr_scheduler import CosineAnnealingLR 
 import torch.nn as nn
 
@@ -50,7 +50,8 @@ def arg_parser():
         "--workers", type=int, default=os.cpu_count(), help="Number of workers"
     )
     parser.add_argument(
-        "--data_root", type=str, default="/root/huy/datasets/Binary", help="Path to data directory"
+        # "--data_root", type=str, default="/root/huy/datasets/Binary", help="Path to data directory"
+        "--data_root", type=str, default="/Users/sumeetdash/MAIA/Semester_3/CAD/Data", help="Path to data directory"
     )
 
     return parser.parse_args()
@@ -115,7 +116,7 @@ if __name__ == "__main__":
     # model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
     # model = models.efficientnet_b1(weights=EfficientNet_B1_Weights.DEFAULT)
     # model = models.efficientnet_b2(weights=EfficientNet_B2_Weights.DEFAULT)
-    model_base = models.resnext101_32x8d(weights=ResNeXt101_32X8D_Weights.DEFAULT)
+    model_base = resnext101_32x8d(weights=ResNeXt101_32X8D_Weights.DEFAULT)
 
     class ModifiedResNeXt101(nn.Module):
         def __init__(self, base_model):
@@ -125,7 +126,7 @@ if __name__ == "__main__":
                 nn.Linear(base_model.fc.in_features, 512),  # Dense layer
                 nn.ReLU(),  # ReLU activation
                 nn.Dropout(p=0.5),  # Dropout with 50% probability
-                nn.Linear(512, 1)  # Single output for binary classification
+                nn.Linear(512, 2)  # Single output for binary classification
             )
 
         def forward(self, x):
@@ -136,13 +137,13 @@ if __name__ == "__main__":
 
 
     # model.classifier[1] = torch.nn.Linear(model.fc.in_features, len(CLASSES))
-    model = ModifiedResNeXt101(model_base, len(CLASSES))
+    model = ModifiedResNeXt101(model_base)
     model = model.to(DEVICE)
 
     # # Loss
-    # criterion = torch.nn.CrossEntropyLoss()
+    criterion = torch.nn.CrossEntropyLoss()
     # Loss Function
-    criterion = torch.nn.BCEWithLogitsLoss()  # Binary cross-entropy loss with logits
+    # criterion = torch.nn.BCEWithLogitsLoss()  # Binary cross-entropy loss with logits
 
     # Monitors
     train_monitor = MetricsMonitor(metrics=["loss", "accuracy"])

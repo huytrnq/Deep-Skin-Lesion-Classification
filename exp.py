@@ -35,7 +35,7 @@ def arg_parser():
         description="Skin Lesion Classification Experiment"
     )
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
-    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
+    parser.add_argument("--epochs", type=int, default=50, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=0.0001, help="Learning rate")
     parser.add_argument(
         "--img_size", type=int, default=400, help="Image size for training"

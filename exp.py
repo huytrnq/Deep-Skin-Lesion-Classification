@@ -3,7 +3,7 @@ This script trains and validates a deep learning model for skin lesion classific
 It uses MLflow for tracking experiments and PyTorch for model training.
 
 Run the script using the following command:
-    python exp.py --batch_size 64 --epochs 100 --lr 0.001 --workers 4 --img_size 400 --warmup_epochs 10 --warmup_lr 0.00005
+    python exp.py --batch_size 64 --epochs 100 --lr 0.001 --workers 4 --warmup_epochs 10 --warmup_lr 0.00005
 """
 
 import os
@@ -13,14 +13,14 @@ import mlflow.pytorch
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader
-from torchvision import transforms, models
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from torchvision import models
 from torchvision.models.resnet import ResNet50_Weights
 from torchvision.models.efficientnet import EfficientNet_B2_Weights
-from torch.optim.lr_scheduler import CosineAnnealingLR 
 
 from utils.dataset import SkinDataset
-from utils.utils import train, validate, test, load_data_file, load_config, build_transforms
 from utils.metric import MetricsMonitor
+from utils.utils import train, validate, test, load_data_file, load_config, build_transforms
 
 
 def arg_parser():
@@ -34,18 +34,22 @@ def arg_parser():
     )
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
     parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
-    parser.add_argument("--lr", type=float, default=0.0001, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=0.00001, help="Learning rate")
+    parser.add_argument("--patience", type=int, default=5, help="Patience for early stopping")
     parser.add_argument(
-        "--img_size", type=int, default=400, help="Image size for training"
+        "--freeze_layers",
+        type=str,
+        default="",
+        help="Comma-separated list of layer names to freeze (e.g., 'layer1,layer2,fc')",
     )
     parser.add_argument(
-        "--warmup_epochs", type=int, default=10, help="Number of warm-up epochs"
+        "--warmup_epochs", type=int, default=0, help="Number of warm-up epochs"
     )
     parser.add_argument(
         "--warmup_lr", type=float, default=0.00005, help="Learning rate during warm-up"
     )
     parser.add_argument(
-        "--workers", type=int, default=os.cpu_count(), help="Number of workers"
+        "--workers", type=int, default=8, help="Number of workers"
     )
     parser.add_argument(
         "--data_root", type=str, default="/root/huy/datasets/Binary", help="Path to data directory"
@@ -68,10 +72,10 @@ if __name__ == "__main__":
     WORKERS = args.workers
     DEVICE = (
         "mps" if torch.backends.mps.is_available()
-        else "cuda" if torch.cuda.is_available() 
+        else "cuda" if torch.cuda.is_available()
         else "cpu"
     )
-    
+
     # Data Transformations
     # Load the configuration file
     config = load_config(CONFIG_PATH)
@@ -121,7 +125,7 @@ if __name__ == "__main__":
 
     # Monitors
     train_monitor = MetricsMonitor(metrics=["loss", "accuracy"])
-    val_monitor = MetricsMonitor(metrics=["loss", "accuracy"], patience=5, mode="max")
+    val_monitor = MetricsMonitor(metrics=["loss", "accuracy"], patience=args.patience, mode="max")
     test_monitor = MetricsMonitor(metrics=["loss", "accuracy"])
 
     # Warm-up settings
@@ -141,7 +145,7 @@ if __name__ == "__main__":
         mlflow.log_param("device", DEVICE)
         mlflow.log_param("classes", CLASSES)
         mlflow.log_param("model", model.__class__.__name__)
-        
+
         # Optimizer setup for warm-up phase
         warmup_optimizer = torch.optim.Adam(model.parameters(), lr=WARMUP_LR)
         main_optimizer = torch.optim.Adam(
@@ -150,7 +154,7 @@ if __name__ == "__main__":
 
         # Scheduler: Cosine Annealing
         scheduler = CosineAnnealingLR(main_optimizer, T_max=EPOCHS, eta_min=0.00001)
-        
+
         for epoch in range(EPOCHS):
             print(f"Epoch {epoch + 1}/{EPOCHS}")
 
@@ -171,12 +175,16 @@ if __name__ == "__main__":
                 )
             else:
                 print("====================== Training phase ======================")
-                # Freeze feature extraction layers after warm-up
-                for name, param in model.named_parameters():
-                    if "features" in name:
-                        param.requires_grad = False
-                    else:
-                        param.requires_grad = True
+                # Parse the freeze layers argument
+                freeze_layers = args.freeze_layers.split(",") if args.freeze_layers else []
+                # Freeze specified layers
+                if freeze_layers:
+                    print(f"Freezing specified layers: {freeze_layers}")
+                    for name, param in model.named_parameters():
+                        if any(layer in name for layer in freeze_layers):
+                            param.requires_grad = False
+                        else:
+                            param.requires_grad = True
 
                 # Training with main optimizer
                 train(
@@ -189,7 +197,7 @@ if __name__ == "__main__":
                 )
 
             validate(model, val_loader, criterion, DEVICE, val_monitor)
-            
+
             # Adjust learning rate with cosine scheduler
             scheduler.step()  # Update the learning rate based on the scheduler
 

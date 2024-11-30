@@ -35,8 +35,12 @@ The dataset consists of more than 15,000 images for binary classification and ar
 - [x] mlflow monitoring
 - [x] Model Training
 - [x] Model Evaluation
-- [ ] Experiments
+- [ ] Experiments - Binary Classification
     - [ ] Finetuning
     - [ ] Transfer Learning
+    - [ ] ResNet with Attention Mechanism
+    - [ ] Finetune Unet for Classification
+- [ ] Experiments - Three Classes Classification
+
 
 

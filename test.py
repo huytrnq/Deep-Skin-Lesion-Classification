@@ -11,7 +11,6 @@ import argparse
 import torch
 import mlflow.pytorch
 from torch.utils.data import DataLoader
-from torchvision import transforms
 
 from utils.dataset import SkinDataset
 from utils.utils import test, load_data_file, load_config, build_transforms
@@ -39,7 +38,7 @@ def arg_parser():
 
 
 if __name__ == "__main__":
-    RUN_ID = '84b964ec20e34778b2cf25e923e57126'
+    RUN_ID = '712a60df16ff4245938c1b874ee8a650'
     MODEL_URI = f"runs:/{RUN_ID}/skin_lesion_model"
 
     args = arg_parser()

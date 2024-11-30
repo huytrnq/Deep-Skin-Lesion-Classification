@@ -8,6 +8,8 @@ Run the script using the following command:
 
 import os
 import argparse
+from pathlib import Path
+
 import torch
 import mlflow.pytorch
 from torch.utils.data import DataLoader
@@ -38,13 +40,20 @@ def arg_parser():
 
 
 if __name__ == "__main__":
+    args = arg_parser()
+    
+    # Constants
     RUN_ID = '712a60df16ff4245938c1b874ee8a650'
     MODEL_URI = f"runs:/{RUN_ID}/skin_lesion_model"
+    ARTIFACT_PATH = "config/config.json"  # Path to the artifact in the run
 
-    args = arg_parser()
-
-    # Constants
     CONFIG_PATH = "config.json"
+    # Download the configuration file from the run
+    local_path = mlflow.artifacts.download_artifacts(run_id=RUN_ID, artifact_path=ARTIFACT_PATH)
+    if  Path(local_path).is_file():
+        print(f"Config file downloaded to: {local_path}")
+        CONFIG_PATH = local_path
+
     CLASSES = ["nevus", "others"]
     BATCH_SIZE = args.batch_size
     WORKERS = args.workers

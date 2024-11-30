@@ -1,6 +1,11 @@
 """Utility functions for training and testing the model."""
 
+import json
+
 import torch
+from torchvision.transforms import transforms
+
+CUSTOM_TRANSFORMS = {}
 
 
 def load_data_file(input_file):
@@ -25,6 +30,35 @@ def load_data_file(input_file):
             labels.append(int(class_id))
 
     return names, labels
+
+
+def load_config(config_path):
+    """Load the configuration file.
+    Args: config_path (str): Path to the configuration file.
+    Returns: dict: Configuration dictionary.
+    """
+    with open(config_path, 'r') as f:
+        return json.load(f)
+
+def build_transforms(transform_config):
+    """Build a transform pipeline dynamically from the configuration."""
+    transform_list = []
+    for transform_name, params in transform_config.items():
+        # Check if the transform is a torchvision transform
+        if hasattr(transforms, transform_name):
+            transform_class = getattr(transforms, transform_name)
+        # Check if it's a custom transform
+        elif transform_name in CUSTOM_TRANSFORMS:
+            transform_class = CUSTOM_TRANSFORMS[transform_name]
+        else:
+            raise ValueError(f"Unknown transform: {transform_name}")
+        
+        # Add the transform with parameters if provided
+        if isinstance(params, dict):
+            transform_list.append(transform_class(**params))
+        else:
+            transform_list.append(transform_class())
+    return transforms.Compose(transform_list)
 
 
 def train(model, dataloader, criterion, optimizer, device, monitor):

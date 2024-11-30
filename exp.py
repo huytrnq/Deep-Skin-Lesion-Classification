@@ -15,13 +15,13 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms, models
 from torchvision.models.resnet import ResNet50_Weights
-from torchvision.models.efficientnet import EfficientNet_B1_Weights, EfficientNet_B2_Weights
+from torchvision.models.efficientnet import EfficientNet_B2_Weights
 from torch.optim.lr_scheduler import CosineAnnealingLR 
 
 from utils.dataset import SkinDataset
-from utils.utils import train, validate, test, load_data_file
+from utils.utils import train, validate, test, load_data_file, load_config, build_transforms
 from utils.metric import MetricsMonitor
-from utils.transform import ResizeKeepRatio
+
 
 def arg_parser():
     """Arg parser
@@ -59,44 +59,28 @@ if __name__ == "__main__":
     # MLflow Experiment Setup
     mlflow.set_experiment("Skin Lesion Classification")
 
-    # Data Transformations
-    transform = transforms.Compose(
-        [
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.RandomAffine(
-                degrees=0,
-                translate=(0.2, 0.2),
-            ),
-            # transforms.ColorJitter(
-            #     brightness=(0.7, 1.3),  # Random brightness factor
-            #     contrast=(0.7, 1.3),    # Random contrast factor
-            #     saturation=(0.7, 1.3),  # Random saturation factor
-            # ),
-            transforms.Resize((args.img_size, args.img_size)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
-    )
-    
-    test_transform = transforms.Compose(
-        [
-            transforms.Resize((args.img_size, args.img_size)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
-    )
-
     # Constants
+    CONFIG_PATH = "config.json"
     CLASSES = ["nevus", "others"]
     BATCH_SIZE = args.batch_size
     EPOCHS = args.epochs
     LR = args.lr
     WORKERS = args.workers
     DEVICE = (
-        "mps"
-        if torch.backends.mps.is_available()
-        else "cuda" if torch.cuda.is_available() else "cpu"
+        "mps" if torch.backends.mps.is_available()
+        else "cuda" if torch.cuda.is_available() 
+        else "cpu"
     )
+    
+    # Data Transformations
+    # Load the configuration file
+    config = load_config(CONFIG_PATH)
+    # Build train and test transforms from the configuration
+    train_transform = build_transforms(config["transformations"]["train"])
+    test_transform = build_transforms(config["transformations"]["test"])
+    print("Train Transformations:", train_transform)
+    print("Test Transformations:", test_transform)
+
 
     # Load data paths and labels
     train_names, train_labels = load_data_file("datasets/train.txt")
@@ -107,8 +91,8 @@ if __name__ == "__main__":
 
     # Create datasets and dataloaders
     # Split the data into train, validation and using validation data as test data
-    train_dataset = SkinDataset(args.data_root, 'train', train_names, train_labels, transform)
-    val_dataset = SkinDataset(args.data_root, 'train', val_names, val_labels, transform)
+    train_dataset = SkinDataset(args.data_root, 'train', train_names, train_labels, train_transform)
+    val_dataset = SkinDataset(args.data_root, 'train', val_names, val_labels, test_transform)
     test_dataset = SkinDataset(args.data_root, 'val', test_names, test_labels, test_transform)
 
     train_loader = DataLoader(
@@ -146,6 +130,8 @@ if __name__ == "__main__":
 
     # Training Loop
     with mlflow.start_run():
+        # Log Artifacts
+        mlflow.log_artifact(CONFIG_PATH, artifact_path="config")
         # Log Parameters
         mlflow.log_param("batch_size", BATCH_SIZE)
         mlflow.log_param("learning_rate", LR)

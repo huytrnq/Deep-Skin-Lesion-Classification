@@ -2,7 +2,7 @@
 This module contains a custom PyTorch dataset class for the skin lesion dataset.
 It is used to load the images and their corresponding labels (if available) from the disk.
 """
-
+import os
 from collections import Counter
 from torch.utils.data import Dataset
 from PIL import Image
@@ -11,28 +11,32 @@ from PIL import Image
 class SkinDataset(Dataset):
     """Custom PyTorch dataset for the skin lesion dataset."""
 
-    def __init__(self, paths, labels=None, transform=None, inference=False):
+    def __init__(self, root_path, sub_folder, names, labels=None, transform=None, inference=False):
         """
         Args:
-            paths (list): List of file paths to the images.
+            root_path (str): Root directory containing the images.
+            sub_folder (str): Sub-folder containing the images (e.g., 'train', 'val', 'test').
+            names (list): List of filenames of the images (relative to root_path).
             labels (list, optional): List of corresponding class IDs for the images.
-                                    Required if inference=False.
+                                     Required if inference=False.
             transform (callable, optional): Optional transform to apply to the images.
             inference (bool): If True, the dataset will not expect labels (default=False).
         """
-        self.paths = paths
+        self.root_path = root_path
+        self.sub_folder = sub_folder
+        self.names = names
         self.labels = labels if not inference else None
         self.transform = transform
         self.inference = inference
 
         if not self.inference and self.labels is None:
             raise ValueError("Labels must be provided if inference=False.")
-        if not self.inference and len(paths) != len(labels):
-            raise ValueError("Paths and labels must have the same length.")
+        if not self.inference and len(names) != len(labels):
+            raise ValueError("Names and labels must have the same length.")
 
     def __len__(self):
         """Return the total number of samples."""
-        return len(self.paths)
+        return len(self.names)
 
     def __str__(self):
         """Return a string representation of the dataset."""
@@ -43,7 +47,6 @@ class SkinDataset(Dataset):
 
     def _get_class_distribution(self):
         """Calculate the class distribution."""
-
         if self.labels:
             class_counts = Counter(self.labels)
             return dict(class_counts)
@@ -51,7 +54,8 @@ class SkinDataset(Dataset):
 
     def __getitem__(self, idx):
         """Fetch the image (and label if available) at the given index."""
-        img_path = self.paths[idx]
+        # Construct the full path to the image
+        img_path = os.path.join(self.root_path, self.sub_folder, self.names[idx])
 
         # Load the image
         image = Image.open(img_path).convert("RGB")  # Convert to RGB if needed

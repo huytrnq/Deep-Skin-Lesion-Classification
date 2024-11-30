@@ -4,16 +4,16 @@ import torch
 
 
 def load_data_file(input_file):
-    """Load image paths and labels from txt file.
+    """Load image names and labels from txt file.
 
     Args:
         input_file (str): Path to the input file.
 
     Returns:
-        list: List of image paths.
+        list: List of image names.
         list: List of labels.
     """
-    paths, labels = [], []
+    names, labels = [], []
     with open(input_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -21,10 +21,10 @@ def load_data_file(input_file):
                 continue
             path, class_id = line.rsplit(" ", 1)
             # Append the path and label
-            paths.append(path)
+            names.append(path)
             labels.append(int(class_id))
 
-    return paths, labels
+    return names, labels
 
 
 def train(model, dataloader, criterion, optimizer, device, monitor):

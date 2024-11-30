@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Root directory containing class folders
-ROOT_DIR=/root/huy/datasets/Binary/val
-OUTPUT_FILE=val.txt
+ROOT_DIR=/root/huy/datasets/Binary/train
+OUTPUT_FILE=train.txt
 
 # Ensure the root directory exists
 if [ ! -d "$ROOT_DIR" ]; then
@@ -18,12 +18,13 @@ echo "Generating file list in '$OUTPUT_FILE'..."
 CLASS_ID=0
 for CLASS_FOLDER in "$ROOT_DIR"/*; do
   if [ -d "$CLASS_FOLDER" ]; then
+    FOLDER_NAME=$(basename "$CLASS_FOLDER")  # Get the name of the folder
     # Iterate through image files in the class folder
     for IMAGE_FILE in "$CLASS_FOLDER"/*.{png,jpg,jpeg,bmp,tiff}; do
       # Check if file exists (to handle cases with no matching files)
       if [ -f "$IMAGE_FILE" ]; then
-        # Write the path and class ID to the output file
-        echo "$IMAGE_FILE $CLASS_ID" >> "$OUTPUT_FILE"
+        # Write the path with one folder in front and class ID to the output file
+        echo "$FOLDER_NAME/$(basename "$IMAGE_FILE") $CLASS_ID" >> "$OUTPUT_FILE"
       fi
     done
     CLASS_ID=$((CLASS_ID + 1)) # Increment class ID

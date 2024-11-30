@@ -35,7 +35,7 @@ def arg_parser():
 
 
 if __name__ == "__main__":
-    MODEL_URI = "runs:/4124e13e59574640a4055b5ec6f23b41/skin_lesion_model"
+    MODEL_URI = "runs:/11d6baa8742d485baddbb12fdeb9530e/skin_lesion_model"
 
     args = arg_parser()
 

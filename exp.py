@@ -50,8 +50,8 @@ def arg_parser():
         "--workers", type=int, default=os.cpu_count(), help="Number of workers"
     )
     parser.add_argument(
-        # "--data_root", type=str, default="/root/huy/datasets/Binary", help="Path to data directory"
-        "--data_root", type=str, default="/Users/sumeetdash/MAIA/Semester_3/CAD/Data", help="Path to data directory"
+        "--data_root", type=str, default="/root/huy/datasets/Binary", help="Path to data directory"
+        # "--data_root", type=str, default="/Users/sumeetdash/MAIA/Semester_3/CAD/Data", help="Path to data directory"
     )
 
     return parser.parse_args()

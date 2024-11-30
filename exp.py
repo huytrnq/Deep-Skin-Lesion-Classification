@@ -47,7 +47,7 @@ def arg_parser():
         "--warmup_lr", type=float, default=0.00005, help="Learning rate during warm-up"
     )
     parser.add_argument(
-        "--workers", type=int, default=os.cpu_count(), help="Number of workers"
+        "--workers", type=int, default=os.cpu_count()/2, help="Number of workers"
     )
     parser.add_argument(
         "--data_root", type=str, default="/root/huy/datasets/Binary", help="Path to data directory"

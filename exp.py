@@ -16,7 +16,9 @@ from torch.utils.data import DataLoader
 from torchvision import transforms, models
 from torchvision.models.resnet import ResNet50_Weights
 from torchvision.models.efficientnet import EfficientNet_B2_Weights
+from torchvision.models.resnext101_32x8d import ResNeXt101_32X8D_Weights
 from torch.optim.lr_scheduler import CosineAnnealingLR 
+import torch.nn as nn
 
 from utils.dataset import SkinDataset
 from utils.utils import train, validate, test, load_data_file, load_config, build_transforms
@@ -39,7 +41,7 @@ def arg_parser():
         "--img_size", type=int, default=400, help="Image size for training"
     )
     parser.add_argument(
-        "--warmup_epochs", type=int, default=10, help="Number of warm-up epochs"
+        "--warmup_epochs", type=int, default=0, help="Number of warm-up epochs"
     )
     parser.add_argument(
         "--warmup_lr", type=float, default=0.00005, help="Learning rate during warm-up"
@@ -112,12 +114,35 @@ if __name__ == "__main__":
     # Model
     # model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
     # model = models.efficientnet_b1(weights=EfficientNet_B1_Weights.DEFAULT)
-    model = models.efficientnet_b2(weights=EfficientNet_B2_Weights.DEFAULT)
-    model.classifier[1] = torch.nn.Linear(1408, len(CLASSES))
+    # model = models.efficientnet_b2(weights=EfficientNet_B2_Weights.DEFAULT)
+    model_base = models.resnext101_32x8d(weights=ResNeXt101_32X8D_Weights.DEFAULT)
+
+    class ModifiedResNeXt101(nn.Module):
+        def __init__(self, base_model):
+            super(ModifiedResNeXt101, self).__init__()
+            self.features = nn.Sequential(*list(base_model.children())[:-1])  # Extract all layers except the final FC layer
+            self.classifier = nn.Sequential(
+                nn.Linear(base_model.fc.in_features, 512),  # Dense layer
+                nn.ReLU(),  # ReLU activation
+                nn.Dropout(p=0.5),  # Dropout with 50% probability
+                nn.Linear(512, 1)  # Single output for binary classification
+            )
+
+        def forward(self, x):
+            x = self.features(x)
+            x = torch.flatten(x, 1)  # Flatten before passing to classifier
+            x = self.classifier(x)
+            return x
+
+
+    # model.classifier[1] = torch.nn.Linear(model.fc.in_features, len(CLASSES))
+    model = ModifiedResNeXt101(model_base, len(CLASSES))
     model = model.to(DEVICE)
 
-    # Loss
-    criterion = torch.nn.CrossEntropyLoss()
+    # # Loss
+    # criterion = torch.nn.CrossEntropyLoss()
+    # Loss Function
+    criterion = torch.nn.BCEWithLogitsLoss()  # Binary cross-entropy loss with logits
 
     # Monitors
     train_monitor = MetricsMonitor(metrics=["loss", "accuracy"])
@@ -148,8 +173,8 @@ if __name__ == "__main__":
             [param for param in model.parameters() if param.requires_grad], lr=LR
         )
 
-        # Scheduler: Cosine Annealing
-        scheduler = CosineAnnealingLR(main_optimizer, T_max=EPOCHS, eta_min=0.00001)
+        # # Scheduler: Cosine Annealing
+        # scheduler = CosineAnnealingLR(main_optimizer, T_max=EPOCHS, eta_min=0.00001)
         
         for epoch in range(EPOCHS):
             print(f"Epoch {epoch + 1}/{EPOCHS}")
@@ -190,8 +215,8 @@ if __name__ == "__main__":
 
             validate(model, val_loader, criterion, DEVICE, val_monitor)
             
-            # Adjust learning rate with cosine scheduler
-            scheduler.step()  # Update the learning rate based on the scheduler
+            # # Adjust learning rate with cosine scheduler
+            # scheduler.step()  # Update the learning rate based on the scheduler
 
             # Log Metrics
             train_loss = train_monitor.compute_average("loss")

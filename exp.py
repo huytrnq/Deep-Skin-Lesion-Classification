@@ -125,7 +125,7 @@ if __name__ == "__main__":
             self.classifier = nn.Sequential(
                 nn.Linear(base_model.fc.in_features, 512),  # Dense layer
                 nn.ReLU(),  # ReLU activation
-                nn.Dropout(p=0.5),  # Dropout with 50% probability
+                nn.Dropout(p=0.25),  # Dropout with 25% probability
                 nn.Linear(512, 2)  # Single output for binary classification
             )
 
@@ -147,7 +147,7 @@ if __name__ == "__main__":
 
     # Monitors
     train_monitor = MetricsMonitor(metrics=["loss", "accuracy"])
-    val_monitor = MetricsMonitor(metrics=["loss", "accuracy"], patience=5, mode="max")
+    val_monitor = MetricsMonitor(metrics=["loss", "accuracy"], patience=10, mode="max")
     test_monitor = MetricsMonitor(metrics=["loss", "accuracy"])
 
     # Warm-up settings

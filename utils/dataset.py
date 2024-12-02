@@ -2,6 +2,7 @@
 This module contains a custom PyTorch dataset class for the skin lesion dataset.
 It is used to load the images and their corresponding labels (if available) from the disk.
 """
+
 import os
 from collections import Counter
 from torch.utils.data import Dataset
@@ -11,7 +12,9 @@ from PIL import Image
 class SkinDataset(Dataset):
     """Custom PyTorch dataset for the skin lesion dataset."""
 
-    def __init__(self, root_path, sub_folder, names, labels=None, transform=None, inference=False):
+    def __init__(
+        self, root_path, sub_folder, names, labels=None, transform=None, inference=False
+    ):
         """
         Args:
             root_path (str): Root directory containing the images.

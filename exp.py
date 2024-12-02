@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
     # model = models.efficientnet_b1(weights=EfficientNet_B1_Weights.DEFAULT)
     model = models.efficientnet_b3(weights=EfficientNet_B3_Weights.DEFAULT)
-    model.classifier[1] = torch.nn.Linear(1536, len(CLASSES))
+    model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, len(CLASSES))
     # model = ResNetLoRA(weights=ResNet50_Weights.DEFAULT, num_classes=len(CLASSES), rank=64)
     # Load pre-trained ViT-B-16 model
     # Load the ViT-L/16 model with pretrained weights

@@ -4,8 +4,11 @@ import json
 
 import torch
 from torchvision.transforms import transforms
+from utils.transform import GaussianNoiseInjection
 
-CUSTOM_TRANSFORMS = {}
+CUSTOM_TRANSFORMS = {
+    "GaussianNoiseInjection": GaussianNoiseInjection,
+}
 
 
 def freeze_layers(model, layers):

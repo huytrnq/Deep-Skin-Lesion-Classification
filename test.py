@@ -3,7 +3,7 @@ This script tests a trained deep learning model for skin lesion classification.
 It uses PyTorch for model evaluation.
 
 Run the script using the following command:
-    python exp.py --tta
+    python exp.py --tta --batch_size 32
 """
 
 import os
@@ -14,6 +14,7 @@ from tqdm import tqdm
 import torch
 import mlflow.pytorch
 from torch.nn.functional import softmax
+from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from utils.dataset import SkinDataset
@@ -34,6 +35,12 @@ def arg_parser():
         "--tta", default=False, help="Use Test Time Augmentation", action="store_true"
     )
     parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=32,
+        help="Batch size for testing",
+    )
+    parser.add_argument(
         "--data_root",
         type=str,
         default="/root/huy/datasets/Binary",
@@ -42,13 +49,13 @@ def arg_parser():
     return parser.parse_args()
 
 
-def tta_step(model, image, transform, num_tta=5, device="cpu"):
+def tta_step_batch(model, images, transform, num_tta=5, device="cpu"):
     """
-    Perform a single TTA step on an image.
+    Perform a single TTA step for a batch of images.
 
     Args:
         model (torch.nn.Module): Trained model.
-        image (PIL.Image or torch.Tensor): Input image.
+        images (torch.Tensor): Input batch of images.
         transform (callable): Transformation to apply for TTA.
         num_tta (int): Number of TTA iterations.
         device (str): Device to run the model on.
@@ -57,22 +64,23 @@ def tta_step(model, image, transform, num_tta=5, device="cpu"):
         torch.Tensor: Averaged predictions across TTA iterations.
     """
     model.eval()
+    batch_size = images.size(0)
     tta_outputs = []
 
     to_pil = transforms.ToPILImage()
     with torch.no_grad():
         for _ in range(num_tta):
-            # Apply augmentation
-            # Convert tensor to PIL Image if needed
-            if isinstance(image, torch.Tensor):
-                image = to_pil(image)
-            augmented_image = transform(image)
-            augmented_image = augmented_image.unsqueeze(0).to(
+            augmented_images = []
+            for img in images:
+                # Convert tensor to PIL Image if needed and apply transform
+                pil_img = to_pil(img.cpu())
+                augmented_images.append(transform(pil_img))
+            augmented_images = torch.stack(augmented_images).to(
                 device
-            )  # Add batch dimension
+            )  # Stack into batch
 
             # Perform inference
-            output = model(augmented_image)
+            output = model(augmented_images)
             tta_outputs.append(softmax(output, dim=1))
 
     # Average predictions across TTA iterations
@@ -84,7 +92,7 @@ if __name__ == "__main__":
     args = arg_parser()
 
     # Constants
-    RUN_ID = "9bee903dfb44461aa10eb8386f19c6fa"
+    RUN_ID = "29c8e83ae4b14bef9b48691dca4c6b06"
     MODEL_URI = f"runs:/{RUN_ID}/skin_lesion_model"
     ARTIFACT_PATH = "config/config.json"  # Path to the artifact in the run
 
@@ -113,10 +121,14 @@ if __name__ == "__main__":
     # Load test data paths and labels
     test_names, test_labels = load_data_file("datasets/val.txt")
 
-    # Create test dataset
+    # Create test dataset and dataloader
     test_dataset = SkinDataset(
         args.data_root, "val", test_names, test_labels, basic_transform
     )
+    test_loader = DataLoader(
+        test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4
+    )
+
     print("================== Test dataset Info: ==================\n", test_dataset)
 
     # Load Model
@@ -129,26 +141,28 @@ if __name__ == "__main__":
     all_labels = []
 
     with torch.no_grad():
-        for idx in tqdm(range(len(test_dataset))):
-            image, label = test_dataset[idx]
-            label = torch.tensor([label]).to(DEVICE)
+        for batch_images, batch_labels in tqdm(test_loader):
+            batch_labels = batch_labels.to(DEVICE)
 
             if args.tta:
                 # Perform TTA
-                tta_output = tta_step(
-                    model, image, train_transform, num_tta=5, device=DEVICE
+                print(
+                    "================== Using Test Time Augmentation =================="
                 )
-                pred = tta_output.argmax(dim=1)
+                tta_output = tta_step_batch(
+                    model, batch_images, train_transform, num_tta=5, device=DEVICE
+                )
+                batch_preds = tta_output.argmax(dim=1)
             else:
                 # Standard Inference
-                image = image.unsqueeze(0).to(DEVICE)  # Add batch dimension
-                output = model(image)
-                pred = output.argmax(dim=1)
+                batch_images = batch_images.to(DEVICE)
+                output = model(batch_images)
+                batch_preds = output.argmax(dim=1)
 
-            all_preds.append(pred)
-            all_labels.append(label)
+            all_preds.append(batch_preds)
+            all_labels.append(batch_labels)
 
-    # Calculate Accuracy
+    # Concatenate all predictions and labels
     all_preds = torch.cat(all_preds)
     all_labels = torch.cat(all_labels)
     test_acc = (all_preds == all_labels).float().mean().item()

@@ -2,7 +2,6 @@
     "transformations": {
         "train": {
             "Resize": {"size": [640, 640]},
-            "GaussianNoiseInjection": {"mean": 0, "std": 0.1},
             "RandomCrop": {"size": [512, 512]},
             "RandomHorizontalFlip": {"p": 0.5},
             "RandomVerticalFlip": {"p": 0.5},

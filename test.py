@@ -37,7 +37,7 @@ def arg_parser():
     parser.add_argument(
         "--num_tta",
         type=int,
-        default=5,
+        default=10,
         help="Number of TTA iterations",
     )
     parser.add_argument(
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     with torch.no_grad():
         for batch_images, batch_labels in tqdm(
-            test_loader, desc="Testing " + "TTA" if args.tta else "without TTA"
+            test_loader, desc="Testing TTA" if args.tta else "Testing without TTA"
         ):
             batch_labels = batch_labels.to(DEVICE)
 

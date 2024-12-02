@@ -8,6 +8,26 @@ from torchvision.transforms import transforms
 CUSTOM_TRANSFORMS = {}
 
 
+def freeze_layers(model, layers):
+    """
+    Freeze the specified layers of the model.
+
+    Args:
+        model: The PyTorch model.
+        layers (list): List of layer names to freeze.
+    """
+    # Parse the freeze layers argument
+    # Freeze specified layers
+    if layers:
+        layers = layers.split(",")
+        print(f"Freezing specified layers: {layers}")
+        for name, param in model.named_parameters():
+            if any(layer in name for layer in layers):
+                param.requires_grad = False
+            else:
+                param.requires_grad = True
+
+
 def load_data_file(input_file):
     """Load image names and labels from txt file.
 
@@ -37,8 +57,9 @@ def load_config(config_path):
     Args: config_path (str): Path to the configuration file.
     Returns: dict: Configuration dictionary.
     """
-    with open(config_path, 'r') as f:
+    with open(config_path, "r") as f:
         return json.load(f)
+
 
 def build_transforms(transform_config):
     """Build a transform pipeline dynamically from the configuration."""
@@ -52,7 +73,7 @@ def build_transforms(transform_config):
             transform_class = CUSTOM_TRANSFORMS[transform_name]
         else:
             raise ValueError(f"Unknown transform: {transform_name}")
-        
+
         # Add the transform with parameters if provided
         if isinstance(params, dict):
             transform_list.append(transform_class(**params))

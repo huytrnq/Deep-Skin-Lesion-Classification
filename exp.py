@@ -16,11 +16,23 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchvision import models
 from torchvision.models.resnet import ResNet50_Weights
-from torchvision.models.efficientnet import EfficientNet_B2_Weights
+from torchvision.models.efficientnet import EfficientNet_B3_Weights
+from torchvision.models import vit_b_16, ViT_B_16_Weights
+from torchvision.models import vit_l_16, ViT_L_16_Weights
+from torchvision.models import swin_t, Swin_T_Weights
 
+from models.resnet import ResNetLoRA
 from utils.dataset import SkinDataset
 from utils.metric import MetricsMonitor
-from utils.utils import train, validate, test, load_data_file, load_config, build_transforms
+from utils.utils import (
+    train,
+    validate,
+    test,
+    load_data_file,
+    load_config,
+    build_transforms,
+    freeze_layers,
+)
 
 
 def arg_parser():
@@ -32,14 +44,17 @@ def arg_parser():
     parser = argparse.ArgumentParser(
         description="Skin Lesion Classification Experiment"
     )
-    parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
-    parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
-    parser.add_argument("--lr", type=float, default=0.00001, help="Learning rate")
-    parser.add_argument("--patience", type=int, default=5, help="Patience for early stopping")
+    parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
+    parser.add_argument("--epochs", type=int, default=50, help="Number of epochs")
+    parser.add_argument("--lr", type=float, default=0.0001, help="Learning rate")
+    parser.add_argument("--optimizer", type=str, default="Adam", help="Optimizer")
+    parser.add_argument(
+        "--patience", type=int, default=5, help="Patience for early stopping"
+    )
     parser.add_argument(
         "--freeze_layers",
         type=str,
-        default="",
+        default=None,
         help="Comma-separated list of layer names to freeze (e.g., 'layer1,layer2,fc')",
     )
     parser.add_argument(
@@ -49,10 +64,13 @@ def arg_parser():
         "--warmup_lr", type=float, default=0.00005, help="Learning rate during warm-up"
     )
     parser.add_argument(
-        "--workers", type=int, default=8, help="Number of workers"
+        "--workers", type=int, default=os.cpu_count() // 2, help="Number of workers"
     )
     parser.add_argument(
-        "--data_root", type=str, default="/root/huy/datasets/Binary", help="Path to data directory"
+        "--data_root",
+        type=str,
+        default="/root/huy/datasets/Binary",
+        help="Path to data directory",
     )
 
     return parser.parse_args()
@@ -71,9 +89,9 @@ if __name__ == "__main__":
     LR = args.lr
     WORKERS = args.workers
     DEVICE = (
-        "mps" if torch.backends.mps.is_available()
-        else "cuda" if torch.cuda.is_available()
-        else "cpu"
+        "mps"
+        if torch.backends.mps.is_available()
+        else "cuda" if torch.cuda.is_available() else "cpu"
     )
 
     # Data Transformations
@@ -85,7 +103,6 @@ if __name__ == "__main__":
     print("Train Transformations:", train_transform)
     print("Test Transformations:", test_transform)
 
-
     # Load data paths and labels
     train_names, train_labels = load_data_file("datasets/train.txt")
     train_names, val_names, train_labels, val_labels = train_test_split(
@@ -95,9 +112,15 @@ if __name__ == "__main__":
 
     # Create datasets and dataloaders
     # Split the data into train, validation and using validation data as test data
-    train_dataset = SkinDataset(args.data_root, 'train', train_names, train_labels, train_transform)
-    val_dataset = SkinDataset(args.data_root, 'train', val_names, val_labels, test_transform)
-    test_dataset = SkinDataset(args.data_root, 'val', test_names, test_labels, test_transform)
+    train_dataset = SkinDataset(
+        args.data_root, "train", train_names, train_labels, train_transform
+    )
+    val_dataset = SkinDataset(
+        args.data_root, "train", val_names, val_labels, test_transform
+    )
+    test_dataset = SkinDataset(
+        args.data_root, "val", test_names, test_labels, test_transform
+    )
 
     train_loader = DataLoader(
         train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=WORKERS
@@ -115,9 +138,26 @@ if __name__ == "__main__":
 
     # Model
     # model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
+    # model.fc = torch.nn.Linear(2048, len(CLASSES))
+
     # model = models.efficientnet_b1(weights=EfficientNet_B1_Weights.DEFAULT)
-    model = models.efficientnet_b2(weights=EfficientNet_B2_Weights.DEFAULT)
-    model.classifier[1] = torch.nn.Linear(1408, len(CLASSES))
+    model = models.efficientnet_b3(weights=EfficientNet_B3_Weights.DEFAULT)
+    model.classifier[1] = torch.nn.Linear(1536, len(CLASSES))
+    # model = ResNetLoRA(weights=ResNet50_Weights.DEFAULT, num_classes=len(CLASSES), rank=64)
+    # Load pre-trained ViT-B-16 model
+    # Load the ViT-L/16 model with pretrained weights
+    # Load the pre-trained Swin Transformer model
+    # weights = Swin_T_Weights.DEFAULT
+    # model = swin_t(weights=weights)
+
+    # # Modify the classifier head for your specific task
+    # num_classes = len(CLASSES)  # Replace with the number of output classes
+    # model.head = torch.nn.Sequential(
+    #     torch.nn.Linear(model.head.in_features, 512),  # Intermediate dense layer
+    #     torch.nn.ReLU(),  # Non-linear activation
+    #     torch.nn.Dropout(0.5),  # Regularization
+    #     torch.nn.Linear(512, num_classes),  # Final classification layer
+    # )
     model = model.to(DEVICE)
 
     # Loss
@@ -125,7 +165,9 @@ if __name__ == "__main__":
 
     # Monitors
     train_monitor = MetricsMonitor(metrics=["loss", "accuracy"])
-    val_monitor = MetricsMonitor(metrics=["loss", "accuracy"], patience=args.patience, mode="max")
+    val_monitor = MetricsMonitor(
+        metrics=["loss", "accuracy"], patience=args.patience, mode="max"
+    )
     test_monitor = MetricsMonitor(metrics=["loss", "accuracy"])
 
     # Warm-up settings
@@ -147,54 +189,63 @@ if __name__ == "__main__":
         mlflow.log_param("model", model.__class__.__name__)
 
         # Optimizer setup for warm-up phase
-        warmup_optimizer = torch.optim.Adam(model.parameters(), lr=WARMUP_LR)
-        main_optimizer = torch.optim.Adam(
+        warmup_optimizer = getattr(torch.optim, args.optimizer)(
+            [param for param in model.parameters() if param.requires_grad], lr=WARMUP_LR
+        )
+        main_optimizer = getattr(torch.optim, args.optimizer)(
             [param for param in model.parameters() if param.requires_grad], lr=LR
         )
 
         # Scheduler: Cosine Annealing
         scheduler = CosineAnnealingLR(main_optimizer, T_max=EPOCHS, eta_min=0.00001)
 
-        for epoch in range(EPOCHS):
-            print(f"Epoch {epoch + 1}/{EPOCHS}")
+        # Warm-up Phase
+        print("====================== Warm-up phase ======================")
+        for epoch in range(WARMUP_EPOCHS):
+            print(f"Warm-up Epoch {epoch + 1}/{WARMUP_EPOCHS}")
+            # Unfreeze all layers during warm-up
+            for param in model.parameters():
+                param.requires_grad = True
 
-            # Warm-up phase
-            if epoch < WARMUP_EPOCHS:
-                print("====================== Warm-up phase ======================")
-                # Unfreeze all layers
-                for param in model.parameters():
-                    param.requires_grad = True
+            train(
+                model,
+                train_loader,
+                criterion,
+                warmup_optimizer,
+                DEVICE,
+                train_monitor,
+            )
 
-                train(
-                    model,
-                    train_loader,
-                    criterion,
-                    warmup_optimizer,
-                    DEVICE,
-                    train_monitor,
-                )
-            else:
-                print("====================== Training phase ======================")
-                # Parse the freeze layers argument
-                freeze_layers = args.freeze_layers.split(",") if args.freeze_layers else []
-                # Freeze specified layers
-                if freeze_layers:
-                    print(f"Freezing specified layers: {freeze_layers}")
-                    for name, param in model.named_parameters():
-                        if any(layer in name for layer in freeze_layers):
-                            param.requires_grad = False
-                        else:
-                            param.requires_grad = True
+            # Validation during warm-up
+            validate(model, val_loader, criterion, DEVICE, val_monitor)
 
-                # Training with main optimizer
-                train(
-                    model,
-                    train_loader,
-                    criterion,
-                    main_optimizer,
-                    DEVICE,
-                    train_monitor,
-                )
+            # Log Metrics
+            train_loss = train_monitor.compute_average("loss")
+            train_acc = train_monitor.compute_average("accuracy")
+            val_loss = val_monitor.compute_average("loss")
+            val_acc = val_monitor.compute_average("accuracy")
+
+            mlflow.log_metric("train_loss", train_loss, step=epoch)
+            mlflow.log_metric("train_accuracy", train_acc, step=epoch)
+            mlflow.log_metric("val_loss", val_loss, step=epoch)
+            mlflow.log_metric("val_accuracy", val_acc, step=epoch)
+
+        # Training Phase
+        print("====================== Training phase ======================")
+        # Freeze layers
+
+        freeze_layers(model, args.freeze_layers)
+        for epoch in range(WARMUP_EPOCHS, EPOCHS):
+            print(f"Training Epoch {epoch + 1}/{EPOCHS}")
+
+            train(
+                model,
+                train_loader,
+                criterion,
+                main_optimizer,
+                DEVICE,
+                train_monitor,
+            )
 
             validate(model, val_loader, criterion, DEVICE, val_monitor)
 
@@ -212,6 +263,7 @@ if __name__ == "__main__":
             mlflow.log_metric("val_loss", val_loss, step=epoch)
             mlflow.log_metric("val_accuracy", val_acc, step=epoch)
 
+            # Early Stopping
             if val_monitor.early_stopping_check(val_acc, model):
                 print("Early stopping triggered.")
                 break
@@ -224,5 +276,5 @@ if __name__ == "__main__":
         mlflow.log_metric("test_accuracy", test_acc)
 
         # Log the Model
-        mlflow.pytorch.log_model(model, "skin_lesion_model")
+        mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")
         print("Model logged to MLflow.")

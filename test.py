@@ -43,7 +43,7 @@ if __name__ == "__main__":
     args = arg_parser()
     
     # Constants
-    RUN_ID = '712a60df16ff4245938c1b874ee8a650'
+    RUN_ID = '328ea8d3d27f48bfa57b8caa09698749'
     MODEL_URI = f"runs:/{RUN_ID}/skin_lesion_model"
     ARTIFACT_PATH = "config/config.json"  # Path to the artifact in the run
 

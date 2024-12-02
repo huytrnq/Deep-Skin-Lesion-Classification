@@ -37,19 +37,19 @@ def arg_parser():
     parser.add_argument(
         "--num_tta",
         type=int,
-        default=10,
+        default=5,
         help="Number of TTA iterations",
     )
     parser.add_argument(
         "--num_workers",
         type=int,
-        default=os.cpu_count(),
+        default=os.cpu_count() // 2,
         help="Number of workers for data loading",
     )
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=32,
+        default=64,
         help="Batch size for testing",
     )
     parser.add_argument(
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     args = arg_parser()
 
     # Constants
-    RUN_ID = "3c589389728b4a5eb521d169ed7ab15d"
+    RUN_ID = "9d5de69af7f74c15b39f7a73db37b077"
     MODEL_URI = f"runs:/{RUN_ID}/skin_lesion_model"
     ARTIFACT_PATH = "config/config.json"  # Path to the artifact in the run
 

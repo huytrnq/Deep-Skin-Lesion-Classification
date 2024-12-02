@@ -35,6 +35,18 @@ def arg_parser():
         "--tta", default=False, help="Use Test Time Augmentation", action="store_true"
     )
     parser.add_argument(
+        "--num_tta",
+        type=int,
+        default=5,
+        help="Number of TTA iterations",
+    )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=os.cpu_count(),
+        help="Number of workers for data loading",
+    )
+    parser.add_argument(
         "--batch_size",
         type=int,
         default=32,
@@ -64,7 +76,6 @@ def tta_step_batch(model, images, transform, num_tta=5, device="cpu"):
         torch.Tensor: Averaged predictions across TTA iterations.
     """
     model.eval()
-    batch_size = images.size(0)
     tta_outputs = []
 
     to_pil = transforms.ToPILImage()
@@ -116,17 +127,26 @@ if __name__ == "__main__":
     config = load_config(CONFIG_PATH)
     train_transform = build_transforms(config["transformations"]["train"])
     test_transform = build_transforms(config["transformations"]["test"])
-    basic_transform = transforms.Compose([transforms.ToTensor()])
+    basic_transform = transforms.Compose(
+        [transforms.Resize((640, 640)), transforms.ToTensor()]
+    )
 
     # Load test data paths and labels
     test_names, test_labels = load_data_file("datasets/val.txt")
 
     # Create test dataset and dataloader
     test_dataset = SkinDataset(
-        args.data_root, "val", test_names, test_labels, basic_transform
+        args.data_root,
+        "val",
+        test_names,
+        test_labels,
+        basic_transform if args.tta else test_transform,
     )
     test_loader = DataLoader(
-        test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4
+        test_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
     )
 
     print("================== Test dataset Info: ==================\n", test_dataset)
@@ -141,16 +161,19 @@ if __name__ == "__main__":
     all_labels = []
 
     with torch.no_grad():
-        for batch_images, batch_labels in tqdm(test_loader):
+        for batch_images, batch_labels in tqdm(
+            test_loader, desc="Testing " + "TTA" if args.tta else "without TTA"
+        ):
             batch_labels = batch_labels.to(DEVICE)
 
             if args.tta:
                 # Perform TTA
-                print(
-                    "================== Using Test Time Augmentation =================="
-                )
                 tta_output = tta_step_batch(
-                    model, batch_images, train_transform, num_tta=5, device=DEVICE
+                    model,
+                    batch_images,
+                    train_transform,
+                    num_tta=args.num_tta,
+                    device=DEVICE,
                 )
                 batch_preds = tta_output.argmax(dim=1)
             else:

@@ -16,9 +16,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchvision import models
 from torchvision.models.resnet import ResNet50_Weights
-from torchvision.models.efficientnet import EfficientNet_B3_Weights
-from torchvision.models import vit_b_16, ViT_B_16_Weights
-from torchvision.models import vit_l_16, ViT_L_16_Weights
+from torchvision.models.efficientnet import EfficientNet_B6_Weights
 from torchvision.models import swin_t, Swin_T_Weights
 
 from models.resnet import ResNetLoRA
@@ -141,11 +139,11 @@ if __name__ == "__main__":
     # model.fc = torch.nn.Linear(2048, len(CLASSES))
 
     # model = models.efficientnet_b1(weights=EfficientNet_B1_Weights.DEFAULT)
-    # model = models.efficientnet_b3(weights=EfficientNet_B3_Weights.DEFAULT)
-    # model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, len(CLASSES))
-
-    model = models.efficientnet_v2_m(weights=models.EfficientNet_V2_M_Weights.DEFAULT)
+    model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
     model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, len(CLASSES))
+
+    # model = models.efficientnet_v2_m(weights=models.EfficientNet_V2_M_Weights.DEFAULT)
+    # model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, len(CLASSES))
 
     # model = ResNetLoRA(weights=ResNet50_Weights.DEFAULT, num_classes=len(CLASSES), rank=64)
     # Load pre-trained ViT-B-16 model
@@ -154,7 +152,7 @@ if __name__ == "__main__":
     # weights = Swin_T_Weights.DEFAULT
     # model = swin_t(weights=weights)
 
-    # # Modify the classifier head for your specific task
+    # # # Modify the classifier head for your specific task
     # num_classes = len(CLASSES)  # Replace with the number of output classes
     # model.head = torch.nn.Sequential(
     #     torch.nn.Linear(model.head.in_features, 512),  # Intermediate dense layer

@@ -37,7 +37,7 @@ def arg_parser():
     parser.add_argument(
         "--num_tta",
         type=int,
-        default=5,
+        default=10,
         help="Number of TTA iterations",
     )
     parser.add_argument(
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     args = arg_parser()
 
     # Constants
-    RUN_ID = "9d5de69af7f74c15b39f7a73db37b077"
+    RUN_ID = "418d6f90b21d40d5902ba95db6dcbd9d"
     MODEL_URI = f"runs:/{RUN_ID}/skin_lesion_model"
     ARTIFACT_PATH = "config/config.json"  # Path to the artifact in the run
 

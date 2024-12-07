@@ -9,7 +9,14 @@ import torch
 class MetricsMonitor:
     """Monitor for tracking metrics and implementing early stopping."""
 
-    def __init__(self, metrics=None, patience=5, delta=0.0001, mode="min"):
+    def __init__(
+        self,
+        metrics=None,
+        patience=5,
+        delta=0.0001,
+        mode="min",
+        export_path="best_model.pth",
+    ):
         """
         Combines metric tracking and early stopping with real-time updates.
 
@@ -26,6 +33,7 @@ class MetricsMonitor:
         self.best_score = None
         self.early_stop = False
         self.counter = 0
+        self.export_path = export_path
         self.reset()
 
     def reset(self):
@@ -121,5 +129,5 @@ class MetricsMonitor:
 
     def save_checkpoint(self, model):
         """Save the best model."""
-        torch.save(model.state_dict(), "best_model.pth")
+        torch.save(model.state_dict(), self.export_path)
         print("Model improved and saved!\n")

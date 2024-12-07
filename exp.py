@@ -8,8 +8,16 @@ Run the script using the following command:
 
 import os
 import argparse
+import dagshub
 import mlflow
 import mlflow.pytorch
+import mlflow
+
+dagshub.init(repo_owner="huytrnq", repo_name="BrainSegmentation", mlflow=True)
+# Start MLflow tracking
+mlflow.start_run(run_name="Skin Lesion Classification")
+
+
 from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader
@@ -76,9 +84,6 @@ def arg_parser():
 
 if __name__ == "__main__":
     args = arg_parser()
-    # MLflow Experiment Setup
-    mlflow.set_experiment("Skin Lesion Classification")
-
     # Constants
     CONFIG_PATH = "config.json"
     CLASSES = ["nevus", "others"]
@@ -238,11 +243,10 @@ if __name__ == "__main__":
 
         freeze_layers(model, args.freeze_layers)
 
-        best_val_acc = 0
-        best_model = None
         for epoch in range(WARMUP_EPOCHS, EPOCHS):
             print(f"Training Epoch {epoch + 1}/{EPOCHS}")
 
+            # Training phase
             train(
                 model,
                 train_loader,
@@ -252,10 +256,11 @@ if __name__ == "__main__":
                 train_monitor,
             )
 
+            # Validation phase
             validate(model, val_loader, criterion, DEVICE, val_monitor)
 
             # Adjust learning rate with cosine scheduler
-            scheduler.step()  # Update the learning rate based on the scheduler
+            scheduler.step()
 
             # Log Metrics
             train_loss = train_monitor.compute_average("loss")
@@ -267,11 +272,6 @@ if __name__ == "__main__":
             mlflow.log_metric("train_accuracy", train_acc, step=epoch)
             mlflow.log_metric("val_loss", val_loss, step=epoch)
             mlflow.log_metric("val_accuracy", val_acc, step=epoch)
-
-            # Save the best model
-            if val_acc > best_val_acc:
-                best_val_acc = val_acc
-                best_model = model
 
             # Early Stopping
             if val_monitor.early_stopping_check(val_acc, model):
@@ -285,6 +285,8 @@ if __name__ == "__main__":
         mlflow.log_metric("test_loss", test_loss)
         mlflow.log_metric("test_accuracy", test_acc)
 
-        # Log the Model
-        mlflow.pytorch.log_model(best_model, artifact_path="skin_lesion_model")
-        print("Model logged to MLflow.")
+        # Log the Best Model
+        print(f"Logging the best model with accuracy: {val_monitor.best_score:.4f}")
+        best_model_state = torch.load(val_monitor.export_path)
+        model.load_state_dict(best_model_state)  # Load the best model state_dict
+        mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")

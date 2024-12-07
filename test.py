@@ -1,11 +1,3 @@
-"""
-This script tests a trained deep learning model for skin lesion classification.
-It uses PyTorch for model evaluation.
-
-Run the script using the following command:
-    python exp.py --tta --batch_size 32
-"""
-
 import os
 import argparse
 from pathlib import Path
@@ -19,14 +11,13 @@ from torchvision import transforms
 
 from utils.dataset import SkinDataset
 from utils.utils import load_data_file, load_config, build_transforms
-from utils.metric import MetricsMonitor
 
 
 def arg_parser():
     """Arg parser
 
     Returns:
-        argparse.Namespace: command line arguments
+        argparse.Namespace: Command-line arguments
     """
     parser = argparse.ArgumentParser(
         description="Skin Lesion Classification Testing Script"
@@ -58,23 +49,17 @@ def arg_parser():
         default="/root/huy/datasets/Binary",
         help="Path to data directory",
     )
+    parser.add_argument(
+        "--data_file",
+        type=str,
+        default="datasets/val.txt",
+        help="Path to the file containing test data paths and labels",
+    )
     return parser.parse_args()
 
 
 def tta_step_batch(model, images, transform, num_tta=5, device="cpu"):
-    """
-    Perform a single TTA step for a batch of images.
-
-    Args:
-        model (torch.nn.Module): Trained model.
-        images (torch.Tensor): Input batch of images.
-        transform (callable): Transformation to apply for TTA.
-        num_tta (int): Number of TTA iterations.
-        device (str): Device to run the model on.
-
-    Returns:
-        torch.Tensor: Averaged predictions across TTA iterations.
-    """
+    """Perform Test Time Augmentation (TTA) for a batch of images."""
     model.eval()
     tta_outputs = []
 
@@ -83,12 +68,9 @@ def tta_step_batch(model, images, transform, num_tta=5, device="cpu"):
         for _ in range(num_tta):
             augmented_images = []
             for img in images:
-                # Convert tensor to PIL Image if needed and apply transform
                 pil_img = to_pil(img.cpu())
                 augmented_images.append(transform(pil_img))
-            augmented_images = torch.stack(augmented_images).to(
-                device
-            )  # Stack into batch
+            augmented_images = torch.stack(augmented_images).to(device)
 
             # Perform inference
             output = model(augmented_images)
@@ -99,61 +81,34 @@ def tta_step_batch(model, images, transform, num_tta=5, device="cpu"):
     return avg_output
 
 
-if __name__ == "__main__":
-    args = arg_parser()
-
-    # Constants
-    RUN_ID = "418d6f90b21d40d5902ba95db6dcbd9d"
-    MODEL_URI = f"runs:/{RUN_ID}/skin_lesion_model"
-    ARTIFACT_PATH = "config/config.json"  # Path to the artifact in the run
-
-    CONFIG_PATH = "config.json"
-    # Download the configuration file from the run
-    local_path = mlflow.artifacts.download_artifacts(
-        run_id=RUN_ID, artifact_path=ARTIFACT_PATH
-    )
-    if Path(local_path).is_file():
-        print(f"Config file downloaded to: {local_path}")
-        CONFIG_PATH = local_path
-
-    CLASSES = ["nevus", "others"]
-    DEVICE = (
-        "mps"
-        if torch.backends.mps.is_available()
-        else "cuda" if torch.cuda.is_available() else "cpu"
-    )
-
+def test(model, config, data_file, data_root, batch_size, num_workers, device="cuda", tta=False, transform=None, num_tta=5):
+    """Test a trained model on a dataset."""
     # Data Transformations
-    config = load_config(CONFIG_PATH)
     train_transform = build_transforms(config["transformations"]["train"])
     test_transform = build_transforms(config["transformations"]["test"])
     basic_transform = transforms.Compose(
         [transforms.Resize((640, 640)), transforms.ToTensor()]
     )
 
-    # Load test data paths and labels
-    test_names, test_labels = load_data_file("datasets/val.txt")
+    # Load test data
+    test_names, test_labels = load_data_file(data_file)
 
     # Create test dataset and dataloader
     test_dataset = SkinDataset(
-        args.data_root,
+        data_root,
         "val",
         test_names,
         test_labels,
-        basic_transform if args.tta else test_transform,
+        basic_transform if tta else test_transform,
     )
     test_loader = DataLoader(
         test_dataset,
-        batch_size=args.batch_size,
+        batch_size=batch_size,
         shuffle=False,
-        num_workers=args.num_workers,
+        num_workers=num_workers,
     )
 
     print("================== Test dataset Info: ==================\n", test_dataset)
-
-    # Load Model
-    model = mlflow.pytorch.load_model(MODEL_URI)
-    model = model.to(DEVICE)
 
     # Testing Phase
     model.eval()
@@ -162,23 +117,23 @@ if __name__ == "__main__":
 
     with torch.no_grad():
         for batch_images, batch_labels in tqdm(
-            test_loader, desc="Testing TTA" if args.tta else "Testing without TTA"
+            test_loader, desc="Testing TTA" if tta else "Testing"
         ):
-            batch_labels = batch_labels.to(DEVICE)
+            batch_labels = batch_labels.to(device)
 
-            if args.tta:
+            if tta:
                 # Perform TTA
                 tta_output = tta_step_batch(
                     model,
                     batch_images,
                     train_transform,
-                    num_tta=args.num_tta,
-                    device=DEVICE,
+                    num_tta=num_tta,
+                    device=device,
                 )
                 batch_preds = tta_output.argmax(dim=1)
             else:
                 # Standard Inference
-                batch_images = batch_images.to(DEVICE)
+                batch_images = batch_images.to(device)
                 output = model(batch_images)
                 batch_preds = output.argmax(dim=1)
 
@@ -189,5 +144,62 @@ if __name__ == "__main__":
     all_preds = torch.cat(all_preds)
     all_labels = torch.cat(all_labels)
     test_acc = (all_preds == all_labels).float().mean().item()
+    return test_acc
 
+
+def load_model_and_config(run_id, artifact_path="config.json", device="cuda"):
+    """Load the trained model and configuration."""
+    model_uri = f"runs:/{run_id}/skin_lesion_model"
+    config_path = "config.json"
+
+    # Download the configuration file from the run
+    local_path = mlflow.artifacts.download_artifacts(
+        run_id=run_id, artifact_path=artifact_path
+    )
+    if Path(local_path).is_file():
+        print(f"Config file downloaded to: {local_path}")
+        config_path = local_path
+
+    # Load model
+    model = mlflow.pytorch.load_model(model_uri)
+    model = model.to(device)
+
+    # Load config
+    config = load_config(config_path)
+    return model, config
+
+
+def main(args):
+    """Main function to test the model."""
+    # Constants
+    RUN_ID = "418d6f90b21d40d5902ba95db6dcbd9d"
+    ARTIFACT_PATH = "config/config.json"
+
+    DEVICE = (
+        "mps"
+        if torch.backends.mps.is_available()
+        else "cuda" if torch.cuda.is_available() else "cpu"
+    )
+
+    # Load model and configuration
+    model, config = load_model_and_config(RUN_ID, ARTIFACT_PATH, DEVICE)
+
+    # Test the model
+    test_acc = test(
+        model,
+        config,
+        args.data_file,
+        args.data_root,
+        args.batch_size,
+        args.num_workers,
+        DEVICE,
+        tta=args.tta,
+        num_tta=args.num_tta,
+    )
     print(f"Test Accuracy: {test_acc:.4f}")
+
+
+if __name__ == "__main__":
+    args = arg_parser()
+    os.environ["MLFLOW_TRACKING_URI"] = "https://dagshub.com/huytrnq/Deep-Skin-Lesion-Classification.mlflow"
+    main(args)

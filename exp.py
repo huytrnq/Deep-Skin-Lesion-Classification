@@ -13,7 +13,9 @@ import mlflow
 import mlflow.pytorch
 import mlflow
 
-dagshub.init(repo_owner="huytrnq", repo_name="Deep-Skin-Lesion-Classification", mlflow=True)
+dagshub.init(
+    repo_owner="huytrnq", repo_name="Deep-Skin-Lesion-Classification", mlflow=True
+)
 # Start MLflow tracking
 mlflow.start_run(run_name="Skin Lesion Classification")
 
@@ -28,12 +30,12 @@ from torchvision.models.efficientnet import EfficientNet_B6_Weights
 from torchvision.models import swin_t, Swin_T_Weights
 
 from models.resnet import ResNetLoRA
+from test import test
 from utils.dataset import SkinDataset
 from utils.metric import MetricsMonitor
 from utils.utils import (
     train,
     validate,
-    test,
     load_data_file,
     load_config,
     build_transforms,
@@ -51,7 +53,7 @@ def arg_parser():
         description="Skin Lesion Classification Experiment"
     )
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--epochs", type=int, default=50, help="Number of epochs")
+    parser.add_argument("--epochs", type=int, default=1, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=0.0001, help="Learning rate")
     parser.add_argument("--optimizer", type=str, default="Adam", help="Optimizer")
     parser.add_argument(
@@ -111,7 +113,6 @@ if __name__ == "__main__":
     train_names, val_names, train_labels, val_labels = train_test_split(
         train_names, train_labels, test_size=0.1, random_state=42, stratify=train_labels
     )
-    test_names, test_labels = load_data_file("datasets/val.txt")
 
     # Create datasets and dataloaders
     # Split the data into train, validation and using validation data as test data
@@ -121,9 +122,6 @@ if __name__ == "__main__":
     val_dataset = SkinDataset(
         args.data_root, "train", val_names, val_labels, test_transform
     )
-    test_dataset = SkinDataset(
-        args.data_root, "val", test_names, test_labels, test_transform
-    )
 
     train_loader = DataLoader(
         train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=WORKERS
@@ -131,13 +129,9 @@ if __name__ == "__main__":
     val_loader = DataLoader(
         val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=WORKERS
     )
-    test_loader = DataLoader(
-        test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=WORKERS
-    )
 
     print("================== Train dataset Info: ==================\n", train_dataset)
     print("================== Val dataset Info: ==================\n", val_dataset)
-    print("================== Test dataset Info: ==================\n", test_dataset)
 
     # Model
     # model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
@@ -175,7 +169,6 @@ if __name__ == "__main__":
     val_monitor = MetricsMonitor(
         metrics=["loss", "accuracy"], patience=args.patience, mode="max"
     )
-    test_monitor = MetricsMonitor(metrics=["loss", "accuracy"])
 
     # Warm-up settings
     WARMUP_EPOCHS = args.warmup_epochs  # Number of warm-up epochs
@@ -277,15 +270,38 @@ if __name__ == "__main__":
             print("Early stopping triggered.")
             break
 
-    # Test Phase
-    test(model, test_loader, criterion, DEVICE, test_monitor)
-    test_loss = test_monitor.compute_average("loss")
-    test_acc = test_monitor.compute_average("accuracy")
-    mlflow.log_metric("test_loss", test_loss)
-    mlflow.log_metric("test_accuracy", test_acc)
-
     # Log the Best Model
-    print(f"Logging the best model with accuracy: {val_monitor.best_score:.4f}")
-    best_model_state = torch.load(val_monitor.export_path)
+    print(f"Logging the best model with accuracy: {abs(val_monitor.best_score):.4f}")
+    best_model_state = torch.load(val_monitor.export_path, weights_only=True)
     model.load_state_dict(best_model_state)  # Load the best model state_dict
     mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")
+
+    # Test the model
+    test_acc = test(
+        model=model,
+        config=config,
+        data_file="datasets/val.txt",
+        data_root=args.data_root,
+        batch_size=BATCH_SIZE,
+        num_workers=WORKERS,
+        device=DEVICE,
+        tta=False,
+    )
+    print(f"Test Accuracy: {test_acc:.4f}")
+
+    # Test the model
+    test_acc_tta = test(
+        model=model,
+        config=config,
+        data_file="datasets/val.txt",
+        data_root=args.data_root,
+        batch_size=BATCH_SIZE,
+        num_workers=WORKERS,
+        device=DEVICE,
+        tta=True,
+        num_tta=10,
+    )
+    print(f"Test with TTA Accuracy: {test_acc_tta:.4f}")
+
+    mlflow.log_metric("test_accuracy", test_acc)
+    mlflow.log_metric("test_accuracy_tta", test_acc_tta)

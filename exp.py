@@ -13,7 +13,7 @@ import mlflow
 import mlflow.pytorch
 import mlflow
 
-dagshub.init(repo_owner="huytrnq", repo_name="BrainSegmentation", mlflow=True)
+dagshub.init(repo_owner="huytrnq", repo_name="Deep-Skin-Lesion-Classification", mlflow=True)
 # Start MLflow tracking
 mlflow.start_run(run_name="Skin Lesion Classification")
 
@@ -182,111 +182,110 @@ if __name__ == "__main__":
     WARMUP_LR = args.warmup_lr  # Learning rate during warm-up
 
     # Training Loop
-    with mlflow.start_run():
-        # Log Artifacts
-        mlflow.log_artifact(CONFIG_PATH, artifact_path="config")
-        # Log Parameters
-        mlflow.log_param("batch_size", BATCH_SIZE)
-        mlflow.log_param("learning_rate", LR)
-        mlflow.log_param("warmup_lr", WARMUP_LR)
-        mlflow.log_param("warmup_epochs", WARMUP_EPOCHS)
-        mlflow.log_param("epochs", EPOCHS)
-        mlflow.log_param("device", DEVICE)
-        mlflow.log_param("classes", CLASSES)
-        mlflow.log_param("model", model.__class__.__name__)
+    # Log Artifacts
+    mlflow.log_artifact(CONFIG_PATH, artifact_path="config")
+    # Log Parameters
+    mlflow.log_param("batch_size", BATCH_SIZE)
+    mlflow.log_param("learning_rate", LR)
+    mlflow.log_param("warmup_lr", WARMUP_LR)
+    mlflow.log_param("warmup_epochs", WARMUP_EPOCHS)
+    mlflow.log_param("epochs", EPOCHS)
+    mlflow.log_param("device", DEVICE)
+    mlflow.log_param("classes", CLASSES)
+    mlflow.log_param("model", model.__class__.__name__)
 
-        # Optimizer setup for warm-up phase
-        warmup_optimizer = getattr(torch.optim, args.optimizer)(
-            [param for param in model.parameters() if param.requires_grad], lr=WARMUP_LR
+    # Optimizer setup for warm-up phase
+    warmup_optimizer = getattr(torch.optim, args.optimizer)(
+        [param for param in model.parameters() if param.requires_grad], lr=WARMUP_LR
+    )
+    main_optimizer = getattr(torch.optim, args.optimizer)(
+        [param for param in model.parameters() if param.requires_grad], lr=LR
+    )
+
+    # Scheduler: Cosine Annealing
+    scheduler = CosineAnnealingLR(main_optimizer, T_max=EPOCHS, eta_min=0.00001)
+
+    # Warm-up Phase
+    print("====================== Warm-up phase ======================")
+    for epoch in range(WARMUP_EPOCHS):
+        print(f"Warm-up Epoch {epoch + 1}/{WARMUP_EPOCHS}")
+        # Unfreeze all layers during warm-up
+        for param in model.parameters():
+            param.requires_grad = True
+
+        train(
+            model,
+            train_loader,
+            criterion,
+            warmup_optimizer,
+            DEVICE,
+            train_monitor,
         )
-        main_optimizer = getattr(torch.optim, args.optimizer)(
-            [param for param in model.parameters() if param.requires_grad], lr=LR
+
+        # Validation during warm-up
+        validate(model, val_loader, criterion, DEVICE, val_monitor)
+
+        # Log Metrics
+        train_loss = train_monitor.compute_average("loss")
+        train_acc = train_monitor.compute_average("accuracy")
+        val_loss = val_monitor.compute_average("loss")
+        val_acc = val_monitor.compute_average("accuracy")
+
+        mlflow.log_metric("train_loss", train_loss, step=epoch)
+        mlflow.log_metric("train_accuracy", train_acc, step=epoch)
+        mlflow.log_metric("val_loss", val_loss, step=epoch)
+        mlflow.log_metric("val_accuracy", val_acc, step=epoch)
+
+    # Training Phase
+    print("====================== Training phase ======================")
+    # Freeze layers
+
+    freeze_layers(model, args.freeze_layers)
+
+    for epoch in range(WARMUP_EPOCHS, EPOCHS):
+        print(f"Training Epoch {epoch + 1}/{EPOCHS}")
+
+        # Training phase
+        train(
+            model,
+            train_loader,
+            criterion,
+            main_optimizer,
+            DEVICE,
+            train_monitor,
         )
 
-        # Scheduler: Cosine Annealing
-        scheduler = CosineAnnealingLR(main_optimizer, T_max=EPOCHS, eta_min=0.00001)
+        # Validation phase
+        validate(model, val_loader, criterion, DEVICE, val_monitor)
 
-        # Warm-up Phase
-        print("====================== Warm-up phase ======================")
-        for epoch in range(WARMUP_EPOCHS):
-            print(f"Warm-up Epoch {epoch + 1}/{WARMUP_EPOCHS}")
-            # Unfreeze all layers during warm-up
-            for param in model.parameters():
-                param.requires_grad = True
+        # Adjust learning rate with cosine scheduler
+        scheduler.step()
 
-            train(
-                model,
-                train_loader,
-                criterion,
-                warmup_optimizer,
-                DEVICE,
-                train_monitor,
-            )
+        # Log Metrics
+        train_loss = train_monitor.compute_average("loss")
+        train_acc = train_monitor.compute_average("accuracy")
+        val_loss = val_monitor.compute_average("loss")
+        val_acc = val_monitor.compute_average("accuracy")
 
-            # Validation during warm-up
-            validate(model, val_loader, criterion, DEVICE, val_monitor)
+        mlflow.log_metric("train_loss", train_loss, step=epoch)
+        mlflow.log_metric("train_accuracy", train_acc, step=epoch)
+        mlflow.log_metric("val_loss", val_loss, step=epoch)
+        mlflow.log_metric("val_accuracy", val_acc, step=epoch)
 
-            # Log Metrics
-            train_loss = train_monitor.compute_average("loss")
-            train_acc = train_monitor.compute_average("accuracy")
-            val_loss = val_monitor.compute_average("loss")
-            val_acc = val_monitor.compute_average("accuracy")
+        # Early Stopping
+        if val_monitor.early_stopping_check(val_acc, model):
+            print("Early stopping triggered.")
+            break
 
-            mlflow.log_metric("train_loss", train_loss, step=epoch)
-            mlflow.log_metric("train_accuracy", train_acc, step=epoch)
-            mlflow.log_metric("val_loss", val_loss, step=epoch)
-            mlflow.log_metric("val_accuracy", val_acc, step=epoch)
+    # Test Phase
+    test(model, test_loader, criterion, DEVICE, test_monitor)
+    test_loss = test_monitor.compute_average("loss")
+    test_acc = test_monitor.compute_average("accuracy")
+    mlflow.log_metric("test_loss", test_loss)
+    mlflow.log_metric("test_accuracy", test_acc)
 
-        # Training Phase
-        print("====================== Training phase ======================")
-        # Freeze layers
-
-        freeze_layers(model, args.freeze_layers)
-
-        for epoch in range(WARMUP_EPOCHS, EPOCHS):
-            print(f"Training Epoch {epoch + 1}/{EPOCHS}")
-
-            # Training phase
-            train(
-                model,
-                train_loader,
-                criterion,
-                main_optimizer,
-                DEVICE,
-                train_monitor,
-            )
-
-            # Validation phase
-            validate(model, val_loader, criterion, DEVICE, val_monitor)
-
-            # Adjust learning rate with cosine scheduler
-            scheduler.step()
-
-            # Log Metrics
-            train_loss = train_monitor.compute_average("loss")
-            train_acc = train_monitor.compute_average("accuracy")
-            val_loss = val_monitor.compute_average("loss")
-            val_acc = val_monitor.compute_average("accuracy")
-
-            mlflow.log_metric("train_loss", train_loss, step=epoch)
-            mlflow.log_metric("train_accuracy", train_acc, step=epoch)
-            mlflow.log_metric("val_loss", val_loss, step=epoch)
-            mlflow.log_metric("val_accuracy", val_acc, step=epoch)
-
-            # Early Stopping
-            if val_monitor.early_stopping_check(val_acc, model):
-                print("Early stopping triggered.")
-                break
-
-        # Test Phase
-        test(model, test_loader, criterion, DEVICE, test_monitor)
-        test_loss = test_monitor.compute_average("loss")
-        test_acc = test_monitor.compute_average("accuracy")
-        mlflow.log_metric("test_loss", test_loss)
-        mlflow.log_metric("test_accuracy", test_acc)
-
-        # Log the Best Model
-        print(f"Logging the best model with accuracy: {val_monitor.best_score:.4f}")
-        best_model_state = torch.load(val_monitor.export_path)
-        model.load_state_dict(best_model_state)  # Load the best model state_dict
-        mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")
+    # Log the Best Model
+    print(f"Logging the best model with accuracy: {val_monitor.best_score:.4f}")
+    best_model_state = torch.load(val_monitor.export_path)
+    model.load_state_dict(best_model_state)  # Load the best model state_dict
+    mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")

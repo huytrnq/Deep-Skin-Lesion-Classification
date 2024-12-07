@@ -237,6 +237,9 @@ if __name__ == "__main__":
         # Freeze layers
 
         freeze_layers(model, args.freeze_layers)
+
+        best_val_acc = 0
+        best_model = None
         for epoch in range(WARMUP_EPOCHS, EPOCHS):
             print(f"Training Epoch {epoch + 1}/{EPOCHS}")
 
@@ -265,6 +268,11 @@ if __name__ == "__main__":
             mlflow.log_metric("val_loss", val_loss, step=epoch)
             mlflow.log_metric("val_accuracy", val_acc, step=epoch)
 
+            # Save the best model
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                best_model = model
+
             # Early Stopping
             if val_monitor.early_stopping_check(val_acc, model):
                 print("Early stopping triggered.")
@@ -278,5 +286,5 @@ if __name__ == "__main__":
         mlflow.log_metric("test_accuracy", test_acc)
 
         # Log the Model
-        mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")
+        mlflow.pytorch.log_model(best_model, artifact_path="skin_lesion_model")
         print("Model logged to MLflow.")

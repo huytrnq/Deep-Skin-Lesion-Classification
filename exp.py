@@ -80,6 +80,12 @@ def arg_parser():
         default="/root/huy/datasets/Binary",
         help="Path to data directory",
     )
+    parser.add_argument(
+        "--num_tta",
+        type=int,
+        default=10,
+        help="Number of TTA iterations",
+    )
 
     return parser.parse_args()
 
@@ -299,7 +305,7 @@ if __name__ == "__main__":
         num_workers=WORKERS,
         device=DEVICE,
         tta=True,
-        num_tta=10,
+        num_tta=args.num_tta,
     )
     print(f"Test with TTA Accuracy: {test_acc_tta:.4f}")
 

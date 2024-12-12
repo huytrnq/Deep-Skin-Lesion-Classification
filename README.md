@@ -43,6 +43,7 @@ The dataset consists of more than 15,000 images for binary classification and ar
 - [ ] Experiments - Three Classes Classification
 - [x] Monitoring
 - [x] TTA
+- [ ] Export Results on prediction
 - [ ] Ensemble
 
 

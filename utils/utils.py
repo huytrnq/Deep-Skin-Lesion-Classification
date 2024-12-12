@@ -86,6 +86,33 @@ def build_transforms(transform_config):
             transform_list.append(transform_class())
     return transforms.Compose(transform_list)
 
+def compute_class_weights_from_dataset(dataset, num_classes):
+    """
+    Compute class weights based on the class distribution in the dataset.
+
+    Args:
+        dataset: Dataset object that has a `_get_class_distribution` method.
+        num_classes: Total number of classes.
+
+    Returns:
+        torch.Tensor: Computed class weights.
+    """
+    if not hasattr(dataset, "_get_class_distribution"):
+        raise AttributeError("Dataset must have a '_get_class_distribution' method.")
+
+    # Get class distribution from the dataset
+    class_distribution = dataset._get_class_distribution()
+
+    # Total samples in the dataset
+    total_samples = sum(class_distribution.values())
+
+    # Compute weights inversely proportional to class frequencies
+    class_weights = [
+        total_samples / (num_classes * class_distribution.get(i, 1))
+        for i in range(num_classes)
+    ]
+    return torch.tensor(class_weights, dtype=torch.float32)
+
 
 def train(model, dataloader, criterion, optimizer, device, monitor, log_kappa=False):
     """

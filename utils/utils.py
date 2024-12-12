@@ -86,6 +86,7 @@ def build_transforms(transform_config):
             transform_list.append(transform_class())
     return transforms.Compose(transform_list)
 
+
 def compute_class_weights_from_dataset(dataset, num_classes):
     """
     Compute class weights based on the class distribution in the dataset.
@@ -112,6 +113,19 @@ def compute_class_weights_from_dataset(dataset, num_classes):
         for i in range(num_classes)
     ]
     return torch.tensor(class_weights, dtype=torch.float32)
+
+
+def export_predictions(predictions, export_path):
+    """
+    Export the predictions to a text file.
+
+    Args:
+        predictions (list): List of predicted class labels.
+        export_path (str): Path to the output file.
+    """
+    with open(export_path, "w") as f:
+        for pred in predictions:
+            f.write(f"{pred}\n")
 
 
 def train(model, dataloader, criterion, optimizer, device, monitor, log_kappa=False):

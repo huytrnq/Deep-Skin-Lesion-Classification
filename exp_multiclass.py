@@ -41,6 +41,7 @@ from utils.utils import (
     build_transforms,
     freeze_layers,
     compute_class_weights_from_dataset,
+    export_predictions,
 )
 
 
@@ -302,7 +303,7 @@ if __name__ == "__main__":
     mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")
 
     # Test the model
-    test_acc, kappa_score = test(
+    test_acc, kappa_score, predictions = test(
         model=model,
         config=config,
         data_file="datasets/Multiclass/val.txt",
@@ -316,7 +317,7 @@ if __name__ == "__main__":
     print(f"Test Accuracy: {test_acc:.4f}")
 
     # Test the model
-    test_acc_tta, kappa_score_tta = test(
+    test_acc_tta, kappa_score_tta, tta_predictions = test(
         model=model,
         config=config,
         data_file="datasets/Multiclass/val.txt",
@@ -334,3 +335,9 @@ if __name__ == "__main__":
     mlflow.log_metric("test_kappa_score", kappa_score)
     mlflow.log_metric("test_accuracy_tta", test_acc_tta)
     mlflow.log_metric("test_kappa_score_tta", kappa_score_tta)
+
+    export_predictions(predictions, "predictions.txt")
+    export_predictions(tta_predictions, "tta_predictions.txt")
+    ## Log predictions to artifacts
+    mlflow.log_artifact("predictions.txt")
+    mlflow.log_artifact("tta_predictions.txt")

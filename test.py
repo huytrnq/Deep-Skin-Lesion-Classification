@@ -4,13 +4,19 @@ from pathlib import Path
 from tqdm import tqdm
 
 import torch
+import dagshub
 import mlflow.pytorch
 from torch.nn.functional import softmax
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from utils.dataset import SkinDataset
-from utils.utils import load_data_file, load_config, build_transforms
+from utils.utils import (
+    load_data_file,
+    load_config,
+    build_transforms,
+    export_predictions,
+)
 
 
 def arg_parser():
@@ -52,8 +58,11 @@ def arg_parser():
     parser.add_argument(
         "--data_file",
         type=str,
-        default="datasets/val.txt",
+        default="datasets/Multiclass/val.txt",
         help="Path to the file containing test data paths and labels",
+    )
+    parser.add_argument(
+        "--log_kappa", default=False, help="Log Cohen's Kappa Score", action="store"
     )
     return parser.parse_args()
 
@@ -165,9 +174,8 @@ def test(
     kappa_score = None
     if log_kappa:
         kappa_score = cohen_kappa_score(all_labels, all_preds)
-        print(f"Cohen's Kappa Score: {kappa_score:.4f}")
 
-    return test_acc, kappa_score
+    return test_acc, kappa_score, all_preds
 
 
 def load_model_and_config(run_id, artifact_path="config.json", device="cuda"):
@@ -195,8 +203,12 @@ def load_model_and_config(run_id, artifact_path="config.json", device="cuda"):
 def main(args):
     """Main function to test the model."""
     # Constants
-    RUN_ID = "418d6f90b21d40d5902ba95db6dcbd9d"
+    RUN_ID = "f62f6e145791420caf0346263e4b14fa"
     ARTIFACT_PATH = "config/config.json"
+
+    dagshub.init(
+        repo_owner="huytrnq", repo_name="Deep-Skin-Lesion-Classification", mlflow=True
+    )
 
     DEVICE = (
         "mps"
@@ -207,19 +219,37 @@ def main(args):
     # Load model and configuration
     model, config = load_model_and_config(RUN_ID, ARTIFACT_PATH, DEVICE)
 
-    # Test the model
-    test_acc = test(
-        model,
-        config,
-        args.data_file,
-        args.data_root,
-        args.batch_size,
-        args.num_workers,
-        DEVICE,
-        tta=args.tta,
-        num_tta=args.num_tta,
-    )
-    print(f"Test Accuracy: {test_acc:.4f}")
+    with mlflow.start_run(run_id=RUN_ID):
+        # Test the model
+        test_acc, kappa_score, predictions = test(
+            model,
+            config,
+            args.data_file,
+            args.data_root,
+            args.batch_size,
+            args.num_workers,
+            DEVICE,
+            tta=args.tta,
+            num_tta=args.num_tta,
+            log_kappa=args.log_kappa,
+        )
+        print(f"Test Accuracy: {test_acc:.4f}")
+        if args.log_kappa:
+            print(f"Cohen's Kappa Score: {kappa_score:.4f}")
+
+        ## Save predictions
+        export_path = "predictions.txt" if not args.tta else "tta_predictions.txt"
+        export_predictions(predictions, export_path)
+
+        ## Log metrics
+        mlflow.log_metric(
+            "test_accuracy" if not args.tta else "test_accuracy_tta", test_acc
+        )
+        if args.log_kappa:
+            mlflow.log_metric(
+                "test_kappa_score" if args.tta else "test_kappa_score_tta", kappa_score
+            )
+        mlflow.log_artifact(export_path)
 
 
 if __name__ == "__main__":

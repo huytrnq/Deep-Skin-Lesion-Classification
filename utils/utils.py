@@ -2,6 +2,8 @@
 
 import json
 
+import numpy as np
+
 import torch
 from torchvision.transforms import transforms
 from sklearn.metrics import cohen_kappa_score
@@ -115,17 +117,20 @@ def compute_class_weights_from_dataset(dataset, num_classes):
     return torch.tensor(class_weights, dtype=torch.float32)
 
 
-def export_predictions(predictions, export_path):
+def export_predictions(
+    predictions,
+    export_path,
+):
     """
-    Export the predictions to a text file.
+    Export the predictions to a npy file.
 
     Args:
         predictions (list): List of predicted class labels.
-        export_path (str): Path to the output file.
+        export_path (str): Path to the npy file to save the predictions.
     """
-    with open(export_path, "w") as f:
-        for pred in predictions:
-            f.write(f"{pred}\n")
+    # Save the predictions to a npy file
+    with open(export_path, "wb") as f:
+        np.save(f, predictions)
 
 
 def train(model, dataloader, criterion, optimizer, device, monitor, log_kappa=False):

@@ -17,6 +17,7 @@ from utils.utils import (
     build_transforms,
     export_predictions,
 )
+from sklearn.metrics import cohen_kappa_score
 
 
 def arg_parser():
@@ -62,7 +63,10 @@ def arg_parser():
         help="Path to the file containing test data paths and labels",
     )
     parser.add_argument(
-        "--log_kappa", default=False, help="Log Cohen's Kappa Score", action="store"
+        "--log_kappa",
+        default=False,
+        help="Log Cohen's Kappa Score",
+        action="store_true",
     )
     return parser.parse_args()
 
@@ -88,9 +92,6 @@ def tta_step_batch(model, images, transform, num_tta=5, device="cpu"):
     # Average predictions across TTA iterations
     avg_output = torch.stack(tta_outputs).mean(dim=0)
     return avg_output
-
-
-from sklearn.metrics import cohen_kappa_score
 
 
 def test(
@@ -135,7 +136,7 @@ def test(
 
     # Testing Phase
     model.eval()
-    all_preds = []
+    all_probs = []
     all_labels = []
 
     with torch.no_grad():
@@ -153,19 +154,22 @@ def test(
                     num_tta=num_tta,
                     device=device,
                 )
-                batch_preds = tta_output.argmax(dim=1)
+                batch_probs = tta_output
             else:
                 # Standard Inference
                 batch_images = batch_images.to(device)
                 output = model(batch_images)
-                batch_preds = output.argmax(dim=1)
+                batch_probs = softmax(output, dim=1)
 
-            all_preds.append(batch_preds)
+            all_probs.append(batch_probs)
             all_labels.append(batch_labels)
 
-    # Concatenate all predictions and labels
-    all_preds = torch.cat(all_preds).cpu().numpy()
+    # Concatenate all probabilities and labels
+    all_probs = torch.cat(all_probs).cpu().numpy()
     all_labels = torch.cat(all_labels).cpu().numpy()
+
+    # Calculate discrete predictions
+    all_preds = all_probs.argmax(axis=1)
 
     # Calculate accuracy
     test_acc = (all_preds == all_labels).mean()
@@ -175,7 +179,7 @@ def test(
     if log_kappa:
         kappa_score = cohen_kappa_score(all_labels, all_preds)
 
-    return test_acc, kappa_score, all_preds
+    return test_acc, kappa_score, all_probs
 
 
 def load_model_and_config(run_id, artifact_path="config.json", device="cuda"):
@@ -221,7 +225,7 @@ def main(args):
 
     with mlflow.start_run(run_id=RUN_ID):
         # Test the model
-        test_acc, kappa_score, predictions = test(
+        test_acc, kappa_score, prediction_probs = test(
             model,
             config,
             args.data_file,
@@ -238,8 +242,15 @@ def main(args):
             print(f"Cohen's Kappa Score: {kappa_score:.4f}")
 
         ## Save predictions
-        export_path = "predictions.txt" if not args.tta else "tta_predictions.txt"
-        export_predictions(predictions, export_path)
+        export_name = (
+            "prediction_probs.npy" if not args.tta else "tta_prediction_probs.npy"
+        )
+        export_path = (
+            f"predictions/Binray/{export_name}"
+            if "Binary" in args.data_root
+            else f"predictions/Multiclass/{export_name}"
+        )
+        export_predictions(prediction_probs, export_path)
 
         ## Log metrics
         mlflow.log_metric(
@@ -249,7 +260,7 @@ def main(args):
             mlflow.log_metric(
                 "test_kappa_score" if args.tta else "test_kappa_score_tta", kappa_score
             )
-        mlflow.log_artifact(export_path)
+        mlflow.log_artifact(export_path, artifact_path="results")
 
 
 if __name__ == "__main__":

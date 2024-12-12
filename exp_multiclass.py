@@ -303,7 +303,7 @@ if __name__ == "__main__":
     mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")
 
     # Test the model
-    test_acc, kappa_score, predictions = test(
+    test_acc, kappa_score, prediction_probs = test(
         model=model,
         config=config,
         data_file="datasets/Multiclass/val.txt",
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     print(f"Test Accuracy: {test_acc:.4f}")
 
     # Test the model
-    test_acc_tta, kappa_score_tta, tta_predictions = test(
+    test_acc_tta, kappa_score_tta, tta_prediction_probs = test(
         model=model,
         config=config,
         data_file="datasets/Multiclass/val.txt",
@@ -336,8 +336,8 @@ if __name__ == "__main__":
     mlflow.log_metric("test_accuracy_tta", test_acc_tta)
     mlflow.log_metric("test_kappa_score_tta", kappa_score_tta)
 
-    export_predictions(predictions, "predictions.txt")
-    export_predictions(tta_predictions, "tta_predictions.txt")
+    export_predictions(prediction_probs, "results/Multiclass/predictions.npy")
+    export_predictions(tta_prediction_probs, "results/Multiclass/tta_predictions.npy")
     ## Log predictions to artifacts
-    mlflow.log_artifact("predictions.txt")
-    mlflow.log_artifact("tta_predictions.txt")
+    mlflow.log_artifact("predictions.npy", artifact_path="results")
+    mlflow.log_artifact("tta_predictions.npy", artifact_path="results")

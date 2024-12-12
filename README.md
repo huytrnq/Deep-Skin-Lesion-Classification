@@ -41,6 +41,8 @@ The dataset consists of more than 15,000 images for binary classification and ar
     - [ ] ResNet with Attention Mechanism
     - [ ] Finetune Unet for Classification
 - [ ] Experiments - Three Classes Classification
-
+- [x] Monitoring
+- [x] TTA
+- [ ] Ensemble
 
 

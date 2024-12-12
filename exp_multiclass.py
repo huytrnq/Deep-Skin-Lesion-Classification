@@ -17,7 +17,7 @@ dagshub.init(
     repo_owner="huytrnq", repo_name="Deep-Skin-Lesion-Classification", mlflow=True
 )
 # Start MLflow tracking
-mlflow.start_run(run_name="Skin Lesion Classification")
+mlflow.start_run(run_name="Skin Lesion Classification - Multiclass")
 
 
 from sklearn.model_selection import train_test_split
@@ -77,7 +77,7 @@ def arg_parser():
     parser.add_argument(
         "--data_root",
         type=str,
-        default="/root/huy/datasets/Binary",
+        default="/root/huy/datasets/Multiclass",
         help="Path to data directory",
     )
     parser.add_argument(
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     args = arg_parser()
     # Constants
     CONFIG_PATH = "config.json"
-    CLASSES = ["nevus", "others"]
+    CLASSES = ['mel', 'bcc', 'scc']
     BATCH_SIZE = args.batch_size
     EPOCHS = args.epochs
     LR = args.lr
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     print("Test Transformations:", test_transform)
 
     # Load data paths and labels
-    train_names, train_labels = load_data_file("datasets/train.txt")
+    train_names, train_labels = load_data_file("datasets/Multiclass/train.txt")
     train_names, val_names, train_labels, val_labels = train_test_split(
         train_names, train_labels, test_size=0.1, random_state=42, stratify=train_labels
     )
@@ -286,7 +286,7 @@ if __name__ == "__main__":
     test_acc = test(
         model=model,
         config=config,
-        data_file="datasets/val.txt",
+        data_file="datasets/Multiclass/val.txt",
         data_root=args.data_root,
         batch_size=BATCH_SIZE,
         num_workers=WORKERS,
@@ -299,7 +299,7 @@ if __name__ == "__main__":
     test_acc_tta = test(
         model=model,
         config=config,
-        data_file="datasets/val.txt",
+        data_file="datasets/Multiclass/val.txt",
         data_root=args.data_root,
         batch_size=BATCH_SIZE,
         num_workers=WORKERS,

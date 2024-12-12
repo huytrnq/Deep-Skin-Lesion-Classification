@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Root directory containing class folders
-ROOT_DIR=/root/huy/datasets/Binary/train
-OUTPUT_FILE=train.txt
+ROOT_DIR=/root/huy/datasets/Multiclass/val
+OUTPUT_FILE=val.txt
 
 # Ensure the root directory exists
 if [ ! -d "$ROOT_DIR" ]; then

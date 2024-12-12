@@ -53,7 +53,7 @@ def arg_parser():
         description="Skin Lesion Classification Experiment"
     )
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--epochs", type=int, default=1, help="Number of epochs")
+    parser.add_argument("--epochs", type=int, default=50, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=0.0001, help="Learning rate")
     parser.add_argument("--optimizer", type=str, default="Adam", help="Optimizer")
     parser.add_argument(
@@ -283,7 +283,7 @@ if __name__ == "__main__":
     mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")
 
     # Test the model
-    test_acc = test(
+    test_acc, _ = test(
         model=model,
         config=config,
         data_file="datasets/Binary/val.txt",
@@ -296,7 +296,7 @@ if __name__ == "__main__":
     print(f"Test Accuracy: {test_acc:.4f}")
 
     # Test the model
-    test_acc_tta = test(
+    test_acc_tta, _ = test(
         model=model,
         config=config,
         data_file="datasets/Binary/val.txt",

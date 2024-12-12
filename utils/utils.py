@@ -4,6 +4,8 @@ import json
 
 import torch
 from torchvision.transforms import transforms
+from sklearn.metrics import cohen_kappa_score
+
 from utils.transform import GaussianNoiseInjection
 
 CUSTOM_TRANSFORMS = {
@@ -85,7 +87,7 @@ def build_transforms(transform_config):
     return transforms.Compose(transform_list)
 
 
-def train(model, dataloader, criterion, optimizer, device, monitor):
+def train(model, dataloader, criterion, optimizer, device, monitor, log_kappa=False):
     """
     Train the model for one epoch.
 
@@ -96,10 +98,13 @@ def train(model, dataloader, criterion, optimizer, device, monitor):
         optimizer: Optimizer for the model.
         device: Device to run the computations on (CPU or GPU).
         monitor: Instance of MetricsMonitor to track metrics.
+        log_kappa: Whether to compute and log Cohen's Kappa Score.
     """
     model.train()
     monitor.reset()
     total_iterations = len(dataloader)
+    all_labels = []
+    all_predictions = []
 
     for iteration, (inputs, labels) in enumerate(dataloader, start=1):
         inputs, labels = inputs.to(device), labels.to(device)
@@ -118,13 +123,22 @@ def train(model, dataloader, criterion, optimizer, device, monitor):
         correct = (predicted == labels).sum().item()
         accuracy = correct / labels.size(0)
 
+        # Collect predictions and labels for kappa score
+        all_labels.extend(labels.cpu().numpy())
+        all_predictions.extend(predicted.cpu().numpy())
+
         monitor.update("loss", loss.item(), count=labels.size(0))
         monitor.update("accuracy", accuracy, count=labels.size(0))
+        # Compute Kappa Score if enabled
+        if log_kappa:
+            kappa = cohen_kappa_score(predicted.cpu().numpy(), labels.cpu().numpy())
+            monitor.update("kappa", kappa, count=len(all_labels))
         monitor.print_iteration(iteration, total_iterations, phase="Train")
+
     monitor.print_final(phase="Train")
 
 
-def validate(model, dataloader, criterion, device, monitor):
+def validate(model, dataloader, criterion, device, monitor, log_kappa=False):
     """
     Validate the model on the validation dataset.
 
@@ -134,10 +148,13 @@ def validate(model, dataloader, criterion, device, monitor):
         criterion: Loss function.
         device: Device to run the computations on (CPU or GPU).
         monitor: Instance of MetricsMonitor to track metrics.
+        log_kappa: Whether to compute and log Cohen's Kappa Score.
     """
     model.eval()
     monitor.reset()
     total_iterations = len(dataloader)
+    all_labels = []
+    all_predictions = []
 
     with torch.no_grad():
         for iteration, (inputs, labels) in enumerate(dataloader, start=1):
@@ -152,13 +169,22 @@ def validate(model, dataloader, criterion, device, monitor):
             correct = (predicted == labels).sum().item()
             accuracy = correct / labels.size(0)
 
+            # Collect predictions and labels for kappa score
+            all_labels.extend(labels.cpu().numpy())
+            all_predictions.extend(predicted.cpu().numpy())
+
             monitor.update("loss", loss.item(), count=labels.size(0))
             monitor.update("accuracy", accuracy, count=labels.size(0))
+            # Compute Kappa Score if enabled
+            if log_kappa:
+                kappa = cohen_kappa_score(predicted.cpu().numpy(), labels.cpu().numpy())
+                monitor.update("kappa", kappa, count=len(all_labels))
             monitor.print_iteration(iteration, total_iterations, phase="Validation")
+
     monitor.print_final(phase="Validation")
 
 
-def test(model, dataloader, criterion, device, monitor):
+def test(model, dataloader, criterion, device, monitor, log_kappa=False):
     """
     Test the model on the test dataset.
 
@@ -168,11 +194,14 @@ def test(model, dataloader, criterion, device, monitor):
         criterion: Loss function.
         device: Device to run the computations on (CPU or GPU).
         monitor: Instance of MetricsMonitor to track metrics.
+        log_kappa: Whether to compute and log Cohen's Kappa Score.
     """
     model.eval()
     monitor.reset()
-
     total_iterations = len(dataloader)
+    all_labels = []
+    all_predictions = []
+
     with torch.no_grad():
         for iteration, (inputs, labels) in enumerate(dataloader, start=1):
             inputs, labels = inputs.to(device), labels.to(device)
@@ -187,8 +216,17 @@ def test(model, dataloader, criterion, device, monitor):
             correct = (predicted == labels).sum().item()
             accuracy = correct / labels.size(0)
 
+            # Collect predictions and labels for kappa score
+            all_labels.extend(labels.cpu().numpy())
+            all_predictions.extend(predicted.cpu().numpy())
+
+            monitor.update("accuracy", accuracy, count=labels.size(0))
             if criterion is not None:
                 monitor.update("loss", loss.item(), count=labels.size(0))
-            monitor.update("accuracy", accuracy, count=labels.size(0))
+            # Compute Kappa Score if enabled
+            if log_kappa:
+                kappa = cohen_kappa_score(predicted.cpu().numpy(), labels.cpu().numpy())
+                monitor.update("kappa", kappa, count=len(all_labels))
             monitor.print_iteration(iteration, total_iterations, phase="Test")
+
     monitor.print_final(phase="Test")

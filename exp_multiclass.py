@@ -53,7 +53,7 @@ def arg_parser():
         description="Skin Lesion Classification Experiment"
     )
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--epochs", type=int, default=1, help="Number of epochs")
+    parser.add_argument("--epochs", type=int, default=50, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=0.0001, help="Learning rate")
     parser.add_argument("--optimizer", type=str, default="Adam", help="Optimizer")
     parser.add_argument(
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     args = arg_parser()
     # Constants
     CONFIG_PATH = "config.json"
-    CLASSES = ['mel', 'bcc', 'scc']
+    CLASSES = ["mel", "bcc", "scc"]
     BATCH_SIZE = args.batch_size
     EPOCHS = args.epochs
     LR = args.lr
@@ -171,9 +171,9 @@ if __name__ == "__main__":
     criterion = torch.nn.CrossEntropyLoss()
 
     # Monitors
-    train_monitor = MetricsMonitor(metrics=["loss", "accuracy"])
+    train_monitor = MetricsMonitor(metrics=["loss", "accuracy", "kappa"])
     val_monitor = MetricsMonitor(
-        metrics=["loss", "accuracy"], patience=args.patience, mode="max"
+        metrics=["loss", "accuracy", "kappa"], patience=args.patience, mode="max"
     )
 
     # Warm-up settings
@@ -219,21 +219,26 @@ if __name__ == "__main__":
             warmup_optimizer,
             DEVICE,
             train_monitor,
+            log_kappa=True,
         )
 
         # Validation during warm-up
-        validate(model, val_loader, criterion, DEVICE, val_monitor)
+        validate(model, val_loader, criterion, DEVICE, val_monitor, log_kappa=True)
 
         # Log Metrics
         train_loss = train_monitor.compute_average("loss")
         train_acc = train_monitor.compute_average("accuracy")
         val_loss = val_monitor.compute_average("loss")
         val_acc = val_monitor.compute_average("accuracy")
+        train_kappa = train_monitor.compute_average("kappa")
+        val_kappa = val_monitor.compute_average("kappa")
 
         mlflow.log_metric("train_loss", train_loss, step=epoch)
         mlflow.log_metric("train_accuracy", train_acc, step=epoch)
         mlflow.log_metric("val_loss", val_loss, step=epoch)
         mlflow.log_metric("val_accuracy", val_acc, step=epoch)
+        mlflow.log_metric("train_kappa", train_kappa, step=epoch)
+        mlflow.log_metric("val_kappa", val_kappa, step=epoch)
 
     # Training Phase
     print("====================== Training phase ======================")
@@ -252,10 +257,18 @@ if __name__ == "__main__":
             main_optimizer,
             DEVICE,
             train_monitor,
+            log_kappa=True,
         )
 
         # Validation phase
-        validate(model, val_loader, criterion, DEVICE, val_monitor)
+        validate(
+            model,
+            val_loader,
+            criterion,
+            DEVICE,
+            val_monitor,
+            log_kappa=True,
+        )
 
         # Adjust learning rate with cosine scheduler
         scheduler.step()
@@ -265,14 +278,18 @@ if __name__ == "__main__":
         train_acc = train_monitor.compute_average("accuracy")
         val_loss = val_monitor.compute_average("loss")
         val_acc = val_monitor.compute_average("accuracy")
+        train_kappa = train_monitor.compute_average("kappa")
+        val_kappa = val_monitor.compute_average("kappa")
 
         mlflow.log_metric("train_loss", train_loss, step=epoch)
         mlflow.log_metric("train_accuracy", train_acc, step=epoch)
         mlflow.log_metric("val_loss", val_loss, step=epoch)
         mlflow.log_metric("val_accuracy", val_acc, step=epoch)
+        mlflow.log_metric("train_kappa", train_kappa, step=epoch)
+        mlflow.log_metric("val_kappa", val_kappa, step=epoch)
 
         # Early Stopping
-        if val_monitor.early_stopping_check(val_acc, model):
+        if val_monitor.early_stopping_check(val_kappa, model):
             print("Early stopping triggered.")
             break
 
@@ -283,7 +300,7 @@ if __name__ == "__main__":
     mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")
 
     # Test the model
-    test_acc = test(
+    test_acc, kappa_score = test(
         model=model,
         config=config,
         data_file="datasets/Multiclass/val.txt",
@@ -292,11 +309,12 @@ if __name__ == "__main__":
         num_workers=WORKERS,
         device=DEVICE,
         tta=False,
+        log_kappa=True,
     )
     print(f"Test Accuracy: {test_acc:.4f}")
 
     # Test the model
-    test_acc_tta = test(
+    test_acc_tta, kappa_score_tta = test(
         model=model,
         config=config,
         data_file="datasets/Multiclass/val.txt",
@@ -306,8 +324,11 @@ if __name__ == "__main__":
         device=DEVICE,
         tta=True,
         num_tta=args.num_tta,
+        log_kappa=True,
     )
     print(f"Test with TTA Accuracy: {test_acc_tta:.4f}")
 
     mlflow.log_metric("test_accuracy", test_acc)
+    mlflow.log_metric("test_kappa_score", kappa_score)
     mlflow.log_metric("test_accuracy_tta", test_acc_tta)
+    mlflow.log_metric("test_kappa_score_tta", kappa_score_tta)

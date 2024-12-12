@@ -129,3 +129,4 @@ mlruns/
 *.ipynb_checkpoints/
 *.pth
 .vscode/
+push.sh

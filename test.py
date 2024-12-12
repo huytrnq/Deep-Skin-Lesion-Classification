@@ -81,7 +81,21 @@ def tta_step_batch(model, images, transform, num_tta=5, device="cpu"):
     return avg_output
 
 
-def test(model, config, data_file, data_root, batch_size, num_workers, device="cuda", tta=False, transform=None, num_tta=5):
+from sklearn.metrics import cohen_kappa_score
+
+
+def test(
+    model,
+    config,
+    data_file,
+    data_root,
+    batch_size,
+    num_workers,
+    device="cuda",
+    tta=False,
+    num_tta=5,
+    log_kappa=False,
+):
     """Test a trained model on a dataset."""
     # Data Transformations
     train_transform = build_transforms(config["transformations"]["train"])
@@ -141,10 +155,19 @@ def test(model, config, data_file, data_root, batch_size, num_workers, device="c
             all_labels.append(batch_labels)
 
     # Concatenate all predictions and labels
-    all_preds = torch.cat(all_preds)
-    all_labels = torch.cat(all_labels)
-    test_acc = (all_preds == all_labels).float().mean().item()
-    return test_acc
+    all_preds = torch.cat(all_preds).cpu().numpy()
+    all_labels = torch.cat(all_labels).cpu().numpy()
+
+    # Calculate accuracy
+    test_acc = (all_preds == all_labels).mean()
+
+    # Calculate and log Kappa Score if enabled
+    kappa_score = None
+    if log_kappa:
+        kappa_score = cohen_kappa_score(all_labels, all_preds)
+        print(f"Cohen's Kappa Score: {kappa_score:.4f}")
+
+    return test_acc, kappa_score
 
 
 def load_model_and_config(run_id, artifact_path="config.json", device="cuda"):
@@ -201,5 +224,7 @@ def main(args):
 
 if __name__ == "__main__":
     args = arg_parser()
-    os.environ["MLFLOW_TRACKING_URI"] = "https://dagshub.com/huytrnq/Deep-Skin-Lesion-Classification.mlflow"
+    os.environ["MLFLOW_TRACKING_URI"] = (
+        "https://dagshub.com/huytrnq/Deep-Skin-Lesion-Classification.mlflow"
+    )
     main(args)

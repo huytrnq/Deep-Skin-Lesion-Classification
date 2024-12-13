@@ -246,9 +246,9 @@ def main(args):
             "prediction_probs.npy" if not args.tta else "tta_prediction_probs.npy"
         )
         export_path = (
-            f"predictions/Binray/{export_name}"
+            f"results/Binray/{export_name}"
             if "Binary" in args.data_root
-            else f"predictions/Multiclass/{export_name}"
+            else f"results/Multiclass/{export_name}"
         )
         export_predictions(prediction_probs, export_path)
 

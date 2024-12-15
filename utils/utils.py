@@ -169,18 +169,18 @@ def train(model, dataloader, criterion, optimizer, device, monitor, log_kappa=Fa
         correct = (predicted == labels).sum().item()
         accuracy = correct / labels.size(0)
 
-        # Collect predictions and labels for kappa score
+        # Collect predictions and labels for overall metrics
         all_labels.extend(labels.cpu().numpy())
         all_predictions.extend(predicted.cpu().numpy())
 
         monitor.update("loss", loss.item(), count=labels.size(0))
         monitor.update("accuracy", accuracy, count=labels.size(0))
-        # Compute Kappa Score if enabled
-        if log_kappa:
-            kappa = cohen_kappa_score(predicted.cpu().numpy(), labels.cpu().numpy())
-            monitor.update("kappa", kappa, count=len(all_labels))
         monitor.print_iteration(iteration, total_iterations, phase="Train")
 
+    # Compute Kappa Score after collecting all predictions
+    if log_kappa and len(set(all_labels)) > 1 and len(set(all_predictions)) > 1:
+        kappa = cohen_kappa_score(all_labels, all_predictions)
+        monitor.update("kappa", kappa)
     monitor.print_final(phase="Train")
 
 
@@ -215,18 +215,18 @@ def validate(model, dataloader, criterion, device, monitor, log_kappa=False):
             correct = (predicted == labels).sum().item()
             accuracy = correct / labels.size(0)
 
-            # Collect predictions and labels for kappa score
+            # Collect predictions and labels for overall metrics
             all_labels.extend(labels.cpu().numpy())
             all_predictions.extend(predicted.cpu().numpy())
 
             monitor.update("loss", loss.item(), count=labels.size(0))
             monitor.update("accuracy", accuracy, count=labels.size(0))
-            # Compute Kappa Score if enabled
-            if log_kappa:
-                kappa = cohen_kappa_score(predicted.cpu().numpy(), labels.cpu().numpy())
-                monitor.update("kappa", kappa, count=len(all_labels))
             monitor.print_iteration(iteration, total_iterations, phase="Validation")
 
+    # Compute Kappa Score after collecting all predictions
+    if log_kappa and len(set(all_labels)) > 1 and len(set(all_predictions)) > 1:
+        kappa = cohen_kappa_score(all_labels, all_predictions)
+        monitor.update("kappa", kappa)
     monitor.print_final(phase="Validation")
 
 
@@ -262,17 +262,17 @@ def test(model, dataloader, criterion, device, monitor, log_kappa=False):
             correct = (predicted == labels).sum().item()
             accuracy = correct / labels.size(0)
 
-            # Collect predictions and labels for kappa score
+            # Collect predictions and labels for overall metrics
             all_labels.extend(labels.cpu().numpy())
             all_predictions.extend(predicted.cpu().numpy())
 
             monitor.update("accuracy", accuracy, count=labels.size(0))
             if criterion is not None:
                 monitor.update("loss", loss.item(), count=labels.size(0))
-            # Compute Kappa Score if enabled
-            if log_kappa:
-                kappa = cohen_kappa_score(predicted.cpu().numpy(), labels.cpu().numpy())
-                monitor.update("kappa", kappa, count=len(all_labels))
             monitor.print_iteration(iteration, total_iterations, phase="Test")
 
+    # Compute Kappa Score after collecting all predictions
+    if log_kappa and len(set(all_labels)) > 1 and len(set(all_predictions)) > 1:
+        kappa = cohen_kappa_score(all_labels, all_predictions)
+        monitor.update("kappa", kappa)
     monitor.print_final(phase="Test")

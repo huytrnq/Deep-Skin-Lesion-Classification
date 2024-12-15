@@ -118,9 +118,11 @@ if __name__ == "__main__":
 
     # Load data paths and labels
     train_names, train_labels = load_data_file("datasets/Multiclass/train.txt")
-    train_names, val_names, train_labels, val_labels = train_test_split(
-        train_names, train_labels, test_size=0.1, random_state=42, stratify=train_labels
-    )
+    # train_names, val_names, train_labels, val_labels = train_test_split(
+    #     train_names, train_labels, test_size=0.1, random_state=42, stratify=train_labels
+    # )
+
+    val_names, val_labels = load_data_file("datasets/Multiclass/val.txt")
 
     # Create datasets and dataloaders
     # Split the data into train, validation and using validation data as test data
@@ -128,7 +130,7 @@ if __name__ == "__main__":
         args.data_root, "train", train_names, train_labels, train_transform
     )
     val_dataset = SkinDataset(
-        args.data_root, "train", val_names, val_labels, test_transform
+        args.data_root, "val", val_names, val_labels, test_transform
     )
 
     train_loader = DataLoader(

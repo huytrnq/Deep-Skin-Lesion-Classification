@@ -237,16 +237,18 @@ class DempsterShaferEnsemble:
         return combined_evidence
 
 
-class MajorityVoting:
-    def __init__(self, run_ids, tta=False):
+class Ensemble:
+    def __init__(self, run_ids, mode="majority", tta=False):
         """
         Initialize the ensemble.
 
         Args:
             run_ids (list): List of MLflow run IDs for the models.
+            mode (str): Ensemble mode ("majority" or "average").
             tta (bool): Whether to use Test Time Augmentation (TTA).
         """
         self.run_ids = run_ids
+        self.mode = mode
         self.tta = tta
         self.artifact_path = (
             "results/prediction_probs.npy"
@@ -284,12 +286,34 @@ class MajorityVoting:
             final_predictions.append(max(set(votes), key=votes.count))
         return final_predictions
 
+    def average_voting(self):
+        """
+        Perform average voting on the predictions.
+
+        Returns:
+            list: Final predictions after averaging probabilities.
+        """
+        final_predictions = []
+        for i in range(len(self.predictions[0])):
+            # Collect the probabilities for the i-th sample across all models
+            votes = [pred[i] for pred in self.predictions]
+
+            # Compute the average probabilities
+            averaged_probs = np.mean(votes, axis=0)
+
+            # Select the class with the highest average probability
+            final_predictions.append(np.argmax(averaged_probs))
+        return final_predictions
+
     def predict(self):
         """
         Perform majority voting on the predictions and return the final predictions.
         """
         self.load_predictions_from_mlflow()
-        final_predictions = self.majority_voting()
+        if self.mode == "average":
+            final_predictions = self.average_voting()
+        else:
+            final_predictions = self.majority_voting()
         return final_predictions
 
 

@@ -317,5 +317,5 @@ if __name__ == "__main__":
     export_predictions(prediction_probs, "results/Binary/predictions.npy")
     export_predictions(tta_prediction_probs, "results/Binary/tta_predictions.npy")
     ## Log predictions to artifacts
-    mlflow.log_artifact("predictions.npy", artifact_path="results")
-    mlflow.log_artifact("tta_predictions.npy", artifact_path="results")
+    mlflow.log_artifact("results/Binary/predictions.npy", artifact_path="results")
+    mlflow.log_artifact("results/Binary/tta_predictions.npy", artifact_path="results")

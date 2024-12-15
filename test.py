@@ -68,6 +68,12 @@ def arg_parser():
         help="Log Cohen's Kappa Score",
         action="store_true",
     )
+    parser.add_argument(
+        "--run_id",
+        type=str,
+        default="aca333832cbf492981651b12b6f27c84",
+        help="MLflow run ID",
+    )
     return parser.parse_args()
 
 
@@ -207,7 +213,7 @@ def load_model_and_config(run_id, artifact_path="config.json", device="cuda"):
 def main(args):
     """Main function to test the model."""
     # Constants
-    RUN_ID = "c440d5e38b764a32aa66bd623545794e"
+    RUN_ID = args.run_id
     ARTIFACT_PATH = "config/config.json"
 
     dagshub.init(

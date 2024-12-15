@@ -2,7 +2,6 @@
     "transformations": {
         "train": {
             "Resize": {"size": [640, 640]},
-            "RandomCrop": {"size": [512, 512]},
             "RandomHorizontalFlip": {"p": 0.5},
             "RandomVerticalFlip": {"p": 0.5},
             "RandomAffine": {"degrees": 90, "scale": [0.8, 1.2], "shear": 20},

@@ -196,7 +196,7 @@ def load_model_and_config(run_id, artifact_path="config.json", device="cuda"):
         config_path = local_path
 
     # Load model
-    model = mlflow.pytorch.load_model(model_uri)
+    model = mlflow.pytorch.load_model(model_uri, map_location=device)
     model = model.to(device)
 
     # Load config
@@ -220,6 +220,7 @@ def main(args):
         else "cuda" if torch.cuda.is_available() else "cpu"
     )
 
+    print(f"Device: {DEVICE}")
     # Load model and configuration
     model, config = load_model_and_config(RUN_ID, ARTIFACT_PATH, DEVICE)
 

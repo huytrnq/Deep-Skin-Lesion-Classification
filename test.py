@@ -35,7 +35,7 @@ def arg_parser():
     parser.add_argument(
         "--num_tta",
         type=int,
-        default=10,
+        default=5,
         help="Number of TTA iterations",
     )
     parser.add_argument(
@@ -59,7 +59,7 @@ def arg_parser():
     parser.add_argument(
         "--data_file",
         type=str,
-        default="datasets/Multiclass/val.txt",
+        default="datasets/Binary/val.txt",
         help="Path to the file containing test data paths and labels",
     )
     parser.add_argument(
@@ -207,7 +207,7 @@ def load_model_and_config(run_id, artifact_path="config.json", device="cuda"):
 def main(args):
     """Main function to test the model."""
     # Constants
-    RUN_ID = "f62f6e145791420caf0346263e4b14fa"
+    RUN_ID = "c440d5e38b764a32aa66bd623545794e"
     ARTIFACT_PATH = "config/config.json"
 
     dagshub.init(
@@ -224,6 +224,8 @@ def main(args):
     model, config = load_model_and_config(RUN_ID, ARTIFACT_PATH, DEVICE)
 
     with mlflow.start_run(run_id=RUN_ID):
+        run_name = mlflow.active_run().info.run_name
+        print(f"MLflow run: {run_name}")
         # Test the model
         test_acc, kappa_score, prediction_probs = test(
             model,
@@ -246,7 +248,7 @@ def main(args):
             "prediction_probs.npy" if not args.tta else "tta_prediction_probs.npy"
         )
         export_path = (
-            f"results/Binray/{export_name}"
+            f"results/Binary/{export_name}"
             if "Binary" in args.data_root
             else f"results/Multiclass/{export_name}"
         )

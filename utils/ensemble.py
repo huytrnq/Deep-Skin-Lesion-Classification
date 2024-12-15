@@ -237,6 +237,62 @@ class DempsterShaferEnsemble:
         return combined_evidence
 
 
+class MajorityVoting:
+    def __init__(self, run_ids, tta=False):
+        """
+        Initialize the ensemble.
+
+        Args:
+            run_ids (list): List of MLflow run IDs for the models.
+            tta (bool): Whether to use Test Time Augmentation (TTA).
+        """
+        self.run_ids = run_ids
+        self.tta = tta
+        self.artifact_path = (
+            "results/prediction_probs.npy"
+            if not tta
+            else "results/tta_prediction_probs.npy"
+        )
+        self.predictions = []
+        dagshub.init(
+            repo_owner="huytrnq",
+            repo_name="Deep-Skin-Lesion-Classification",
+            mlflow=True,
+        )
+
+    def load_predictions_from_mlflow(self):
+        """
+        Load predictions from MLflow artifacts.
+        """
+        for run_id in self.run_ids:
+            with mlflow.start_run(run_id=run_id):
+                predictions_npy_path = mlflow.artifacts.download_artifacts(
+                    run_id=run_id, artifact_path=self.artifact_path
+                )
+                self.predictions.append(np.load(predictions_npy_path))
+
+    def majority_voting(self):
+        """
+        Perform majority voting on the predictions.
+
+        Returns:
+            list: Final predictions.
+        """
+        final_predictions = []
+        for i in range(len(self.predictions[0])):
+            votes = [np.argmax(pred[i]) for pred in self.predictions]
+            final_predictions.append(max(set(votes), key=votes.count))
+        return final_predictions
+
+    def predict(self):
+        """
+        Perform majority voting on the predictions and return the final predictions.
+        """
+        self.load_predictions_from_mlflow()
+        final_predictions = self.majority_voting()
+        return final_predictions
+
+
 if __name__ == "__main__":
     dagshub.init(
         repo_owner="huytrnq", repo_name="Deep-Skin-Lesion-Classification", mlflow=True

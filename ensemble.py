@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     ensemble = Ensemble(
         run_ids=run_ids,
-        mode="dempster_shafer",  # Change to the desired mode
+        mode="geometric_mean",  # Change to the desired mode
         tta=False,
         weights=None,  # Provide weights for weighted modes
     )

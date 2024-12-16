@@ -35,7 +35,7 @@ def arg_parser():
     parser.add_argument(
         "--num_tta",
         type=int,
-        default=5,
+        default=10,
         help="Number of TTA iterations",
     )
     parser.add_argument(
@@ -53,13 +53,13 @@ def arg_parser():
     parser.add_argument(
         "--data_root",
         type=str,
-        default="/root/huy/datasets/Binary",
+        default="/root/huy/datasets/Multiclass",
         help="Path to data directory",
     )
     parser.add_argument(
         "--data_file",
         type=str,
-        default="datasets/Binary/val.txt",
+        default="datasets/Multiclass/val.txt",
         help="Path to the file containing test data paths and labels",
     )
     parser.add_argument(

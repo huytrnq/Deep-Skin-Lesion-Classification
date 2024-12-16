@@ -317,6 +317,7 @@ if __name__ == "__main__":
         log_kappa=True,
     )
     print(f"Test Accuracy: {test_acc:.4f}")
+    print(f"Kappa Score: {kappa_score:.4f}")
 
     # Test the model
     test_acc_tta, kappa_score_tta, tta_prediction_probs = test(
@@ -332,16 +333,21 @@ if __name__ == "__main__":
         log_kappa=True,
     )
     print(f"Test with TTA Accuracy: {test_acc_tta:.4f}")
+    print(f"Kappa Score with TTA: {kappa_score_tta:.4f}")
 
     mlflow.log_metric("test_accuracy", test_acc)
     mlflow.log_metric("test_kappa_score", kappa_score)
     mlflow.log_metric("test_accuracy_tta", test_acc_tta)
     mlflow.log_metric("test_kappa_score_tta", kappa_score_tta)
 
-    export_predictions(prediction_probs, "results/Multiclass/predictions.npy")
-    export_predictions(tta_prediction_probs, "results/Multiclass/tta_predictions.npy")
+    export_predictions(prediction_probs, "results/Multiclass/prediction_probs.npy")
+    export_predictions(
+        tta_prediction_probs, "results/Multiclass/tta_prediction_probs.npy"
+    )
     ## Log predictions to artifacts
-    mlflow.log_artifact("results/Multiclass/predictions.npy", artifact_path="results")
     mlflow.log_artifact(
-        "results/Multiclass/tta_predictions.npy", artifact_path="results"
+        "results/Multiclass/prediction_probs.npy", artifact_path="results"
+    )
+    mlflow.log_artifact(
+        "results/Multiclass/tta_prediction_probs.npy", artifact_path="results"
     )

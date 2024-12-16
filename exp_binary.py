@@ -41,6 +41,7 @@ from utils.utils import (
     build_transforms,
     freeze_layers,
     export_predictions,
+    compute_class_weights_from_dataset
 )
 
 
@@ -170,7 +171,8 @@ if __name__ == "__main__":
     model = model.to(DEVICE)
 
     # Loss
-    criterion = torch.nn.CrossEntropyLoss()
+    class_weights = compute_class_weights_from_dataset(train_dataset, len(CLASSES))
+    criterion = torch.nn.CrossEntropyLoss(weight=class_weights).to(DEVICE)
 
     # Monitors
     train_monitor = MetricsMonitor(metrics=["loss", "accuracy"])

@@ -42,6 +42,7 @@ from utils.utils import (
     freeze_layers,
     export_predictions,
     compute_class_weights_from_dataset,
+    log_first_batch_images,
 )
 
 
@@ -249,6 +250,9 @@ if __name__ == "__main__":
     freeze_layers(model, args.freeze_layers)
 
     for epoch in range(WARMUP_EPOCHS, EPOCHS):
+        if epoch == WARMUP_EPOCHS:
+            log_first_batch_images(train_loader, save_path="images/train_images.png")
+            log_first_batch_images(val_loader, save_path="images/val_images.png")
         print(f"Training Epoch {epoch + 1}/{EPOCHS}")
 
         # Training phase
@@ -319,8 +323,10 @@ if __name__ == "__main__":
     mlflow.log_metric("test_accuracy", test_acc)
     mlflow.log_metric("test_accuracy_tta", test_acc_tta)
 
-    export_predictions(prediction_probs, "results/Binary/predictions.npy")
-    export_predictions(tta_prediction_probs, "results/Binary/tta_predictions.npy")
+    export_predictions(prediction_probs, "results/Binary/prediction_probs.npy")
+    export_predictions(tta_prediction_probs, "results/Binary/tta_prediction_probs.npy")
     ## Log predictions to artifacts
-    mlflow.log_artifact("results/Binary/predictions.npy", artifact_path="results")
-    mlflow.log_artifact("results/Binary/tta_predictions.npy", artifact_path="results")
+    mlflow.log_artifact("results/Binary/prediction_probs.npy", artifact_path="results")
+    mlflow.log_artifact(
+        "results/Binary/tta_prediction_probs.npy", artifact_path="results"
+    )

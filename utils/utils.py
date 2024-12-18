@@ -1,10 +1,11 @@
 """Utility functions for training and testing the model."""
 
 import json
-
+import mlflow
 import numpy as np
 
 import torch
+import torchvision
 from torchvision.transforms import transforms
 from sklearn.metrics import cohen_kappa_score
 
@@ -116,6 +117,25 @@ def compute_class_weights_from_dataset(dataset, num_classes):
         for i in range(num_classes)
     ]
     return torch.tensor(class_weights, dtype=torch.float32)
+
+
+def log_first_batch_images(
+    dataloader, save_path="first_batch_image.png", artifact_path="images"
+):
+    """
+    Logs the first batch of images to MLflow as an artifact.
+
+    Args:
+        dataloader (DataLoader): DataLoader for the training dataset.
+        save_path (str): Path to save the image locally before logging.
+        artifact_path (str): Artifact path in MLflow to store the image.
+    """
+    first_batch = next(iter(dataloader))
+    inputs, _ = first_batch  # Ignore labels here
+    grid_image = torchvision.utils.make_grid(inputs, nrow=8, normalize=True)
+    torchvision.transforms.ToPILImage()(grid_image).save(save_path)
+    mlflow.log_artifact(save_path, artifact_path="images")
+    print(f"First batch image logged to MLflow: {save_path}")
 
 
 def export_predictions(

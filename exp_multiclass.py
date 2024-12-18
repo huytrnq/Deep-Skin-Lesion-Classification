@@ -43,6 +43,7 @@ from utils.utils import (
     freeze_layers,
     compute_class_weights_from_dataset,
     export_predictions,
+    log_first_batch_images,
 )
 
 
@@ -260,6 +261,9 @@ if __name__ == "__main__":
     freeze_layers(model, args.freeze_layers)
 
     for epoch in range(WARMUP_EPOCHS, EPOCHS):
+        if epoch == WARMUP_EPOCHS:
+            log_first_batch_images(train_loader, save_path="images/train_images.png")
+            log_first_batch_images(val_loader, save_path="images/val_images.png")
         print(f"Training Epoch {epoch + 1}/{EPOCHS}")
 
         # Training phase

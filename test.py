@@ -53,13 +53,13 @@ def arg_parser():
     parser.add_argument(
         "--data_root",
         type=str,
-        default="/root/huy/datasets/Multiclass",
+        default="/root/huy/datasets/Binary",
         help="Path to data directory",
     )
     parser.add_argument(
         "--data_file",
         type=str,
-        default="datasets/Multiclass/val.txt",
+        default="datasets/Binary/val.txt",
         help="Path to the file containing test data paths and labels",
     )
     parser.add_argument(

@@ -9,7 +9,8 @@ from sklearn.metrics import (
 from utils.ensemble import Ensemble
 from utils.utils import load_data_file
 
-DATASET = "Multiclass"
+# DATASET = "Multiclass"
+DATASET = "Binary"
 TTA = False
 
 if __name__ == "__main__":
@@ -19,12 +20,11 @@ if __name__ == "__main__":
         run_ids = [
             "d14d502cca984bcb8b0e9f66deec8cd2",
             "73f0abbe48dc4ca19cdb9b74a1826521",
-            "6daf9a790a8d471b80a16ca45b8b5be3",
-            "2af79e5e3bb140a190c8bd18a67bdeaa",
             # "c440d5e38b764a32aa66bd623545794e",
             # "1c717a394d854ec8ada7edd7dfe57feb",
             # "3143486234e64ee38f8917e6bffa5de2",
             "aca333832cbf492981651b12b6f27c84",
+            "01075d0203854b33b15069fe44ffadcd",
         ]
     else:
         ## Multiclass run_ids
@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     ensemble = Ensemble(
         run_ids=run_ids,
-        mode="dempster_shafer",  # Change to the desired mode
+        mode="average",  # Change to the desired mode
         tta=False,
         weights=None,
     )

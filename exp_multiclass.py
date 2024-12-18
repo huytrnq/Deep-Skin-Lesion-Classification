@@ -30,6 +30,7 @@ from torchvision.models.efficientnet import EfficientNet_B6_Weights
 from torchvision.models import swin_t, Swin_T_Weights
 
 from models.resnet import ResNetLoRA
+from models.loss import FocalLoss
 from test import test
 from utils.dataset import SkinDataset
 from utils.metric import MetricsMonitor
@@ -106,6 +107,9 @@ if __name__ == "__main__":
         if torch.backends.mps.is_available()
         else "cuda" if torch.cuda.is_available() else "cpu"
     )
+    # Warm-up settings
+    WARMUP_EPOCHS = args.warmup_epochs  # Number of warm-up epochs
+    WARMUP_LR = args.warmup_lr  # Learning rate during warm-up
 
     # Data Transformations
     # Load the configuration file
@@ -148,7 +152,10 @@ if __name__ == "__main__":
     # model.fc = torch.nn.Linear(2048, len(CLASSES))
 
     # model = models.efficientnet_b1(weights=EfficientNet_B1_Weights.DEFAULT)
-    model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+    # model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+    model = mlflow.pytorch.load_model(
+        "runs:/eee52d223bb9492ab7d4d992e758fd10/skin_lesion_model", map_location=DEVICE
+    )
     model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, len(CLASSES))
 
     # model = models.efficientnet_v2_m(weights=models.EfficientNet_V2_M_Weights.DEFAULT)
@@ -181,9 +188,16 @@ if __name__ == "__main__":
         metrics=["loss", "accuracy", "kappa"], patience=args.patience, mode="max"
     )
 
-    # Warm-up settings
-    WARMUP_EPOCHS = args.warmup_epochs  # Number of warm-up epochs
-    WARMUP_LR = args.warmup_lr  # Learning rate during warm-up
+    # Optimizer setup for warm-up phase
+    warmup_optimizer = getattr(torch.optim, args.optimizer)(
+        [param for param in model.parameters() if param.requires_grad], lr=WARMUP_LR
+    )
+    main_optimizer = getattr(torch.optim, args.optimizer)(
+        [param for param in model.parameters() if param.requires_grad], lr=LR
+    )
+
+    # Scheduler: Cosine Annealing
+    scheduler = CosineAnnealingLR(main_optimizer, T_max=EPOCHS, eta_min=0.00001)
 
     # Training Loop
     # Log Artifacts
@@ -197,17 +211,11 @@ if __name__ == "__main__":
     mlflow.log_param("device", DEVICE)
     mlflow.log_param("classes", CLASSES)
     mlflow.log_param("model", model.__class__.__name__)
-
-    # Optimizer setup for warm-up phase
-    warmup_optimizer = getattr(torch.optim, args.optimizer)(
-        [param for param in model.parameters() if param.requires_grad], lr=WARMUP_LR
-    )
-    main_optimizer = getattr(torch.optim, args.optimizer)(
-        [param for param in model.parameters() if param.requires_grad], lr=LR
-    )
-
-    # Scheduler: Cosine Annealing
-    scheduler = CosineAnnealingLR(main_optimizer, T_max=EPOCHS, eta_min=0.00001)
+    mlflow.log_param("optimizer", main_optimizer.__class__.__name__)
+    mlflow.log_param("patience", args.patience)
+    mlflow.log_param("freeze_layers", args.freeze_layers)
+    mlflow.log_param("num_workers", WORKERS)
+    mlflow.log_param("scheduler", scheduler.__class__.__name__)
 
     # Warm-up Phase
     print("====================== Warm-up phase ======================")

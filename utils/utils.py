@@ -8,10 +8,11 @@ import torch
 from torchvision.transforms import transforms
 from sklearn.metrics import cohen_kappa_score
 
-from utils.transform import GaussianNoiseInjection
+from utils.transform import GaussianNoiseInjection, AdvancedHairAugmentation
 
 CUSTOM_TRANSFORMS = {
     "GaussianNoiseInjection": GaussianNoiseInjection,
+    "AdvancedHairAugmentation": AdvancedHairAugmentation,
 }
 
 

@@ -41,7 +41,7 @@ from utils.utils import (
     build_transforms,
     freeze_layers,
     export_predictions,
-    compute_class_weights_from_dataset
+    compute_class_weights_from_dataset,
 )
 
 
@@ -148,6 +148,9 @@ if __name__ == "__main__":
 
     # model = models.efficientnet_b1(weights=EfficientNet_B1_Weights.DEFAULT)
     model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+    # model = torch.load("model.pth")
+    # model.load_state_dict(torch.load("model.pth"))
+
     model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, len(CLASSES))
 
     # model = models.efficientnet_v2_m(weights=models.EfficientNet_V2_M_Weights.DEFAULT)

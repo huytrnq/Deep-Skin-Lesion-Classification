@@ -2,6 +2,7 @@
     "transformations": {
         "train": {
             "Resize": {"size": [512, 512]},
+            "AdvancedHairAugmentation": {"hairs": 4, "hairs_folder": "./datasets/hairs"},
             "RandomHorizontalFlip": {"p": 0.5},
             "RandomVerticalFlip": {"p": 0.5},
             "RandomAffine": {"degrees": 90, "scale": [0.8, 1.2], "shear": 20},

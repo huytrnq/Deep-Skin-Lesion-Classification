@@ -43,15 +43,17 @@ def freeze_layers(model, layers):
                 param.requires_grad = True
 
 
-def load_data_file(input_file):
-    """Load image names and labels from txt file.
+def load_data_file(input_file, inference=False):
+    """
+    Load image names and labels from a text file.
 
     Args:
         input_file (str): Path to the input file.
+        inference (bool): If True, assume no labels are present in the file.
 
     Returns:
         list: List of image names.
-        list: List of labels.
+        list or None: List of labels, or None if inference=True.
     """
     names, labels = [], []
     with open(input_file, "r", encoding="utf-8") as f:
@@ -59,12 +61,16 @@ def load_data_file(input_file):
             line = line.strip()
             if not line:
                 continue
-            path, class_id = line.rsplit(" ", 1)
-            # Append the path and label
-            names.append(path)
-            labels.append(int(class_id))
+            if inference:
+                # Only extract the path when in inference mode
+                names.append(line)
+            else:
+                # Extract both path and label when not in inference mode
+                path, class_id = line.rsplit(" ", 1)
+                names.append(path)
+                labels.append(int(class_id))
 
-    return names, labels
+    return names, None if inference else labels
 
 
 def load_config(config_path):

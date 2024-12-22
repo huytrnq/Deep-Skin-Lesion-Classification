@@ -29,7 +29,7 @@ class SkinDataset(Dataset):
         self.root_path = root_path
         self.sub_folder = sub_folder
         self.names = names
-        self.labels = labels if not inference else None
+        self.labels = labels
         self.transform = transform
         self.inference = inference
 

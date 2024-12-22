@@ -109,9 +109,11 @@ def test(
     batch_size,
     num_workers,
     device="cuda",
+    mode="val",
     tta=False,
     num_tta=5,
     log_kappa=False,
+    inference=False,
 ):
     """Test a trained model on a dataset."""
     # Data Transformations
@@ -119,15 +121,18 @@ def test(
     test_transform = build_transforms(config["transformations"]["test"])
 
     # Load test data
-    test_names, test_labels = load_data_file(data_file)
+    test_names, test_labels = (
+        load_data_file(data_file) if not inference else (data_file, None)
+    )
 
     # Create test dataset and dataloader
     test_dataset = SkinDataset(
         data_root,
-        "val",
+        mode,
         test_names,
         test_labels,
         train_transform if tta else test_transform,
+        inference=inference,
     )
     test_loader = DataLoader(
         test_dataset,
@@ -151,11 +156,15 @@ def test(
             current_probs = []
             current_labels = []
 
-            for batch_images, batch_labels in tqdm(
+            for batch in tqdm(
                 test_loader,
                 desc=f"TTA Iteration {i + 1}/{num_tta}" if tta else "Testing",
             ):
-                batch_images = batch_images.to(device)
+                if inference:
+                    batch_images = batch.to(device)
+                else:
+                    batch_images, batch_labels = batch
+                    batch_images = batch_images.to(device)
 
                 # Model inference
                 outputs = model(batch_images)
@@ -163,20 +172,24 @@ def test(
 
                 current_probs.append(batch_probs.detach().cpu())
                 # Collect labels only in the first iteration
-                if i == 0:
+                if not inference and i == 0:
                     current_labels.append(batch_labels)
 
             # Store current iteration probabilities
             all_probs.append(torch.cat(current_probs))
 
             # Store labels only once
-            if i == 0:
+            if not inference and i == 0:
                 all_labels = torch.cat(current_labels)
+
     # Ensemble predictions across TTA iterations if TTA is enabled
     if tta:
         all_probs = torch.stack(all_probs).mean(dim=0).numpy()
     else:
         all_probs = all_probs[0].numpy()
+
+    if inference:
+        return all_probs
 
     # Calculate discrete predictions
     all_preds = all_probs.argmax(axis=1)
@@ -187,7 +200,7 @@ def test(
     # Calculate and log Kappa Score if enabled
     kappa_score = None
     if log_kappa:
-        kappa_score = cohen_kappa_score(all_labels, all_preds)
+        kappa_score = cohen_kappa_score(all_labels.numpy(), all_preds)
 
     return test_acc, kappa_score, all_probs
 
@@ -246,6 +259,7 @@ def main(args):
             os.path.join(args.data_root, DATASET),
             args.batch_size,
             args.num_workers,
+            "val",
             DEVICE,
             tta=args.tta,
             num_tta=args.num_tta,
@@ -259,9 +273,6 @@ def main(args):
         export_name = (
             "prediction_probs.npy" if not args.tta else "tta_prediction_probs.npy"
         )
-        export_path = f"results/{DATASET}/{export_name}"
-        export_predictions(prediction_probs, export_path)
-
         ## Log metrics
         mlflow.log_metric(
             "test_accuracy" if not args.tta else "test_accuracy_tta", test_acc
@@ -270,6 +281,27 @@ def main(args):
             mlflow.log_metric(
                 "test_kappa_score" if args.tta else "test_kappa_score_tta", kappa_score
             )
+
+        export_path = f"results/{DATASET}/{export_name}"
+        export_predictions(prediction_probs, export_path)
+        mlflow.log_artifact(export_path, artifact_path="results")
+
+        ############ Generate predictions for the test set ############
+        test_predictions = test(
+            model,
+            config,
+            f"datasets/{DATASET}/test.txt",
+            os.path.join(args.data_root, DATASET),
+            args.batch_size,
+            args.num_workers,
+            "test",
+            DEVICE,
+            tta=args.tta,
+            num_tta=args.num_tta,
+            inference=True,
+        )
+        export_path = f"results/{DATASET}/test_predictions.npy"
+        export_predictions(test_predictions, export_path)
         mlflow.log_artifact(export_path, artifact_path="results")
 
 

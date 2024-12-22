@@ -86,6 +86,69 @@ class GaussianNoiseInjection:
         return noisy_image
 
 
+class ObjectCentricCropping:
+    def __init__(self):
+        """
+        Object-centric cropping for skin lesion images.
+        This crops the image to the bounding box containing the object (lesion) and returns the cropped image.
+        """
+        pass
+
+    def __call__(self, img):
+        """
+        Crop the image around the object (lesion).
+
+        Args:
+            img (PIL.Image or numpy.ndarray): Input image.
+
+        Returns:
+            PIL.Image: Cropped image centered on the object.
+        """
+        # Convert PIL Image to OpenCV format (BGR)
+        if isinstance(img, Image.Image):
+            img = np.array(img)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        # Convert the image to grayscale
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Threshold the image to create a binary mask
+        _, thresh = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
+
+        # Find contours of the object in the binary mask
+        contours, _ = cv2.findContours(
+            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        if len(contours) == 0:
+            # If no contours are found, return the original image as is
+            print("No object detected. Returning the original image.")
+            crop = img
+        else:
+            # Get the largest contour (assuming it's the lesion)
+            largest_contour = max(contours, key=cv2.contourArea)
+
+            # Get the bounding box for the largest contour
+            x, y, w, h = cv2.boundingRect(largest_contour)
+
+            # Ensure the bounding box is within image dimensions
+            x = max(0, x)
+            y = max(0, y)
+            w = min(w, img.shape[1] - x)
+            h = min(h, img.shape[0] - y)
+
+            # Crop the image around the bounding box
+            crop = img[y : y + h, x : x + w]
+
+        # Resize the crop to a standard size (e.g., 224x224) for consistent input to models
+        crop = cv2.resize(crop, (224, 224))
+
+        # Convert back to PIL Image format
+        crop = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+
+        return crop
+
+
 class AdvancedHairAugmentation:
     """Add hairs to an image."""
 
@@ -99,6 +162,7 @@ class AdvancedHairAugmentation:
         """
         self.hairs = hairs
         self.hairs_folder = hairs_folder
+        self.hair_images = [im for im in os.listdir(self.hairs_folder) if "png" in im]
 
     def __call__(self, img):
         """
@@ -121,11 +185,10 @@ class AdvancedHairAugmentation:
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
         height, width, _ = img.shape  # target image width and height
-        hair_images = [im for im in os.listdir(self.hairs_folder) if "png" in im]
 
         for _ in range(n_hairs):
             hair = cv2.imread(
-                os.path.join(self.hairs_folder, random.choice(hair_images))
+                os.path.join(self.hairs_folder, random.choice(self.hair_images))
             )
             hair = cv2.flip(hair, random.choice([-1, 0, 1]))
             hair = cv2.rotate(hair, random.choice([0, 1, 2]))

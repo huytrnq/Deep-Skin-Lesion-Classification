@@ -24,7 +24,8 @@ if __name__ == "__main__":
             # "1c717a394d854ec8ada7edd7dfe57feb",
             # "3143486234e64ee38f8917e6bffa5de2",
             "aca333832cbf492981651b12b6f27c84",
-            "01075d0203854b33b15069fe44ffadcd",
+            # "01075d0203854b33b15069fe44ffadcd",
+            "457dd607fd764b04aff122d1d4f22b90",
         ]
     else:
         ## Multiclass run_ids
@@ -38,7 +39,7 @@ if __name__ == "__main__":
 
     ensemble = Ensemble(
         run_ids=run_ids,
-        mode="average",  # Change to the desired mode
+        mode="geometric_mean",  # Change to the desired mode
         tta=False,
         weights=None,
     )

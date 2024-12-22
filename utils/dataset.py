@@ -6,6 +6,7 @@ It is used to load the images and their corresponding labels (if available) from
 import os
 from collections import Counter
 from torch.utils.data import Dataset
+import numpy as np
 from PIL import Image
 
 
@@ -63,12 +64,18 @@ class SkinDataset(Dataset):
         # Load the image
         image = Image.open(img_path).convert("RGB")  # Convert to RGB if needed
 
+        # Convert the PIL image to a NumPy array for Albumentations
+        image = np.array(image)
+
         # Apply transformations, if provided
         if self.transform:
-            image = self.transform(image)
+            augmented = self.transform(image=image)  # Pass as named argument
+            image = augmented["image"]  # Extract the transformed image
 
+        # Return only the image for inference
         if self.inference:
             return image
 
+        # Fetch the label
         label = self.labels[idx]
         return image, label

@@ -6,14 +6,20 @@ import numpy as np
 
 import torch
 import torchvision
-from torchvision.transforms import transforms
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 from sklearn.metrics import cohen_kappa_score
 
-from utils.transform import GaussianNoiseInjection, AdvancedHairAugmentation
+from utils.transform import (
+    GaussianNoiseInjection,
+    AdvancedHairAugmentation,
+    ObjectCentricCropping,
+)
 
 CUSTOM_TRANSFORMS = {
     "GaussianNoiseInjection": GaussianNoiseInjection,
     "AdvancedHairAugmentation": AdvancedHairAugmentation,
+    "ObjectCentricCropping": ObjectCentricCropping,
 }
 
 
@@ -72,23 +78,24 @@ def load_config(config_path):
 
 def build_transforms(transform_config):
     """Build a transform pipeline dynamically from the configuration."""
-    transform_list = []
-    for transform_name, params in transform_config.items():
-        # Check if the transform is a torchvision transform
-        if hasattr(transforms, transform_name):
-            transform_class = getattr(transforms, transform_name)
-        # Check if it's a custom transform
-        elif transform_name in CUSTOM_TRANSFORMS:
-            transform_class = CUSTOM_TRANSFORMS[transform_name]
-        else:
-            raise ValueError(f"Unknown transform: {transform_name}")
 
-        # Add the transform with parameters if provided
-        if isinstance(params, dict):
-            transform_list.append(transform_class(**params))
+    def parse_transform(transform):
+        """Parse a single transformation from JSON."""
+        transform_name, params = list(transform.items())[0]
+        if transform_name == "OneOf":
+            # Special handling for OneOf transformations
+            sub_transforms = [parse_transform(sub) for sub in params["transforms"]]
+            return A.OneOf(sub_transforms, p=params.get("p", 1.0))
+        elif hasattr(A, transform_name):
+            # Regular Albumentations transformations
+            transform_class = getattr(A, transform_name)
+            return transform_class(**params)
+        elif transform_name == "ToTensorV2":
+            return ToTensorV2()  # Handle ToTensorV2 separately
         else:
-            transform_list.append(transform_class())
-    return transforms.Compose(transform_list)
+            raise ValueError(f"Unknown transformation: {transform_name}")
+
+    return A.Compose([parse_transform(t) for t in transform_config])
 
 
 def compute_class_weights_from_dataset(dataset, num_classes):

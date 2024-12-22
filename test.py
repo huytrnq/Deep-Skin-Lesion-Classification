@@ -41,7 +41,7 @@ def arg_parser():
     parser.add_argument(
         "--num_workers",
         type=int,
-        default=os.cpu_count() // 2,
+        default=os.cpu_count(),
         help="Number of workers for data loading",
     )
     parser.add_argument(
@@ -53,14 +53,8 @@ def arg_parser():
     parser.add_argument(
         "--data_root",
         type=str,
-        default="/root/huy/datasets/Binary",
+        default="/root/huy/datasets/",
         help="Path to data directory",
-    )
-    parser.add_argument(
-        "--data_file",
-        type=str,
-        default="datasets/Binary/val.txt",
-        help="Path to the file containing test data paths and labels",
     )
     parser.add_argument(
         "--log_kappa",
@@ -74,6 +68,12 @@ def arg_parser():
         default="aca333832cbf492981651b12b6f27c84",
         help="MLflow run ID",
     )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default="binary",
+        help="Dataset type (binary/multiclass)",
+    )
     return parser.parse_args()
 
 
@@ -82,13 +82,14 @@ def tta_step_batch(model, images, transform, num_tta=5, device="cpu"):
     model.eval()
     tta_outputs = []
 
-    to_pil = transforms.ToPILImage()
     with torch.no_grad():
         for _ in range(num_tta):
             augmented_images = []
+            import pdb
+
+            pdb.set_trace()
             for img in images:
-                pil_img = to_pil(img.cpu())
-                augmented_images.append(transform(pil_img))
+                augmented_images.append(transform(image=img.numpy()))
             augmented_images = torch.stack(augmented_images).to(device)
 
             # Perform inference
@@ -116,7 +117,6 @@ def test(
     # Data Transformations
     train_transform = build_transforms(config["transformations"]["train"])
     test_transform = build_transforms(config["transformations"]["test"])
-    basic_transform = build_transforms(config["transformations"]["basic"])
 
     # Load test data
     test_names, test_labels = load_data_file(data_file)
@@ -127,7 +127,7 @@ def test(
         "val",
         test_names,
         test_labels,
-        basic_transform if tta else test_transform,
+        train_transform if tta else test_transform,
     )
     test_loader = DataLoader(
         test_dataset,
@@ -144,39 +144,45 @@ def test(
     all_labels = []
 
     with torch.no_grad():
-        for batch_images, batch_labels in tqdm(
-            test_loader, desc="Testing TTA" if tta else "Testing"
-        ):
-            batch_labels = batch_labels.to(device)
+        all_probs = []
+        all_labels = []
 
-            if tta:
-                # Perform TTA
-                tta_output = tta_step_batch(
-                    model,
-                    batch_images,
-                    train_transform,
-                    num_tta=num_tta,
-                    device=device,
-                )
-                batch_probs = tta_output
-            else:
-                # Standard Inference
+        for i in range(num_tta if tta else 1):
+            current_probs = []
+            current_labels = []
+
+            for batch_images, batch_labels in tqdm(
+                test_loader,
+                desc=f"TTA Iteration {i + 1}/{num_tta}" if tta else "Testing",
+            ):
                 batch_images = batch_images.to(device)
-                output = model(batch_images)
-                batch_probs = softmax(output, dim=1)
 
-            all_probs.append(batch_probs)
-            all_labels.append(batch_labels)
+                # Model inference
+                outputs = model(batch_images)
+                batch_probs = softmax(outputs, dim=1)
 
-    # Concatenate all probabilities and labels
-    all_probs = torch.cat(all_probs).cpu().numpy()
-    all_labels = torch.cat(all_labels).cpu().numpy()
+                current_probs.append(batch_probs.detach().cpu())
+                # Collect labels only in the first iteration
+                if i == 0:
+                    current_labels.append(batch_labels)
+
+            # Store current iteration probabilities
+            all_probs.append(torch.cat(current_probs))
+
+            # Store labels only once
+            if i == 0:
+                all_labels = torch.cat(current_labels)
+    # Ensemble predictions across TTA iterations if TTA is enabled
+    if tta:
+        all_probs = torch.stack(all_probs).mean(dim=0).numpy()
+    else:
+        all_probs = all_probs[0].numpy()
 
     # Calculate discrete predictions
     all_preds = all_probs.argmax(axis=1)
 
     # Calculate accuracy
-    test_acc = (all_preds == all_labels).mean()
+    test_acc = (all_preds == all_labels).float().mean().item()
 
     # Calculate and log Kappa Score if enabled
     kappa_score = None
@@ -213,7 +219,8 @@ def main(args):
     # Constants
     RUN_ID = args.run_id
     ARTIFACT_PATH = "config/config.json"
-
+    # Dataset type
+    DATASET = "Binary" if args.dataset.lower() == "binary" else "Multiclass"
     dagshub.init(
         repo_owner="huytrnq", repo_name="Deep-Skin-Lesion-Classification", mlflow=True
     )
@@ -235,8 +242,8 @@ def main(args):
         test_acc, kappa_score, prediction_probs = test(
             model,
             config,
-            args.data_file,
-            args.data_root,
+            f"datasets/{DATASET}/val.txt",
+            os.path.join(args.data_root, DATASET),
             args.batch_size,
             args.num_workers,
             DEVICE,
@@ -252,11 +259,7 @@ def main(args):
         export_name = (
             "prediction_probs.npy" if not args.tta else "tta_prediction_probs.npy"
         )
-        export_path = (
-            f"results/Binary/{export_name}"
-            if "Binary" in args.data_root
-            else f"results/Multiclass/{export_name}"
-        )
+        export_path = f"results/{DATASET}/{export_name}"
         export_predictions(prediction_probs, export_path)
 
         ## Log metrics

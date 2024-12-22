@@ -116,9 +116,7 @@ def test(
     # Data Transformations
     train_transform = build_transforms(config["transformations"]["train"])
     test_transform = build_transforms(config["transformations"]["test"])
-    basic_transform = transforms.Compose(
-        [transforms.Resize((640, 640)), transforms.ToTensor()]
-    )
+    basic_transform = build_transforms(config["transformations"]["basic"])
 
     # Load test data
     test_names, test_labels = load_data_file(data_file)

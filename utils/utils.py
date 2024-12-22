@@ -98,6 +98,24 @@ def build_transforms(transform_config):
     return A.Compose([parse_transform(t) for t in transform_config])
 
 
+def log_metrics(monitor, epoch, mode="train"):
+    """Log the computed metrics to MLflow.
+
+    Args:
+        monitor (MetricsMonitor): Instance of MetricsMonitor to track metrics.
+        epoch (int): Current epoch.
+        mode (str): Mode of operation (train/val/test).
+    """
+    # Log Metrics
+    loss = monitor.compute_average("loss")
+    acc = monitor.compute_average("accuracy")
+    kappa = monitor.compute_average("kappa")
+
+    mlflow.log_metric(f"{mode}_loss", loss, step=epoch)
+    mlflow.log_metric(f"t{mode}_accuracy", acc, step=epoch)
+    mlflow.log_metric(f"{mode}_kappa", kappa, step=epoch)
+
+
 def compute_class_weights_from_dataset(dataset, num_classes):
     """
     Compute class weights based on the class distribution in the dataset.

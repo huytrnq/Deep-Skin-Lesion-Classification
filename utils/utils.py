@@ -59,16 +59,17 @@ def load_data_file(input_file, inference=False):
     with open(input_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if not line:
+            if not line or line.isspace():
                 continue
             if inference:
-                # Only extract the path when in inference mode
                 names.append(line)
             else:
-                # Extract both path and label when not in inference mode
-                path, class_id = line.rsplit(" ", 1)
-                names.append(path)
-                labels.append(int(class_id))
+                try:
+                    path, class_id = line.rsplit(" ", 1)
+                    names.append(path)
+                    labels.append(int(class_id))
+                except ValueError:
+                    raise ValueError(f"Malformed line in dataset file: {line}")
 
     return names, None if inference else labels
 

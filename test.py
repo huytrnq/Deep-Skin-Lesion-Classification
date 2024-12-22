@@ -121,9 +121,7 @@ def test(
     test_transform = build_transforms(config["transformations"]["test"])
 
     # Load test data
-    test_names, test_labels = (
-        load_data_file(data_file) if not inference else (data_file, None)
-    )
+    test_names, test_labels = load_data_file(data_file, inference=inference)
 
     # Create test dataset and dataloader
     test_dataset = SkinDataset(
@@ -253,17 +251,18 @@ def main(args):
         print(f"MLflow run: {run_name}")
         # Test the model
         test_acc, kappa_score, prediction_probs = test(
-            model,
-            config,
-            f"datasets/{DATASET}/val.txt",
-            os.path.join(args.data_root, DATASET),
-            args.batch_size,
-            args.num_workers,
-            "val",
-            DEVICE,
+            model=model,
+            config=config,
+            data_file=f"datasets/{DATASET}/val.txt",
+            data_root=os.path.join(args.data_root, DATASET),
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            device=DEVICE,
+            mode="val",
             tta=args.tta,
             num_tta=args.num_tta,
             log_kappa=args.log_kappa,
+            inference=False,
         )
         print(f"Test Accuracy: {test_acc:.4f}")
         if args.log_kappa:
@@ -288,16 +287,17 @@ def main(args):
 
         ############ Generate predictions for the test set ############
         test_predictions = test(
-            model,
-            config,
-            f"datasets/{DATASET}/test.txt",
-            os.path.join(args.data_root, DATASET),
-            args.batch_size,
-            args.num_workers,
-            "test",
-            DEVICE,
+            model=model,
+            config=config,
+            data_file=f"datasets/{DATASET}/test.txt",
+            data_root=os.path.join(args.data_root, DATASET),
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            device=DEVICE,
+            mode="test",
             tta=args.tta,
             num_tta=args.num_tta,
+            log_kappa=args.log_kappa,
             inference=True,
         )
         export_path = f"results/{DATASET}/test_predictions.npy"

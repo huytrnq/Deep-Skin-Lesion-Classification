@@ -111,7 +111,7 @@ def test(
     device="cuda",
     mode="val",
     tta=False,
-    num_tta=5,
+    num_tta=10,
     log_kappa=False,
     inference=False,
 ):

@@ -334,10 +334,11 @@ if __name__ == "__main__":
         data_root=os.path.join(args.data_root, DATASET),
         batch_size=BATCH_SIZE,
         num_workers=WORKERS,
-        mode="val",
         device=DEVICE,
+        mode="val",
         tta=False,
         log_kappa=True,
+        inference=False,
     )
     print(f"Test Accuracy: {test_acc:.4f}")
     print(f"Kappa Score: {kappa_score:.4f}")
@@ -375,3 +376,40 @@ if __name__ == "__main__":
     mlflow.log_artifact(
         f"results/{DATASET}/tta_prediction_probs.npy", artifact_path="results"
     )
+
+    ############ Generate predictions for the test set ############
+    test_predictions = test(
+        model=model,
+        config=config,
+        data_file=f"datasets/{DATASET}/test.txt",
+        data_root=os.path.join(args.data_root, DATASET),
+        batch_size=BATCH_SIZE,
+        num_workers=WORKERS,
+        device=DEVICE,
+        mode="test",
+        tta=False,
+        num_tta=args.num_tta,
+        log_kappa=True,
+        inference=True,
+    )
+    export_path = f"results/{DATASET}/test_predictions.npy"
+    export_predictions(test_predictions, export_path)
+    mlflow.log_artifact(export_path, artifact_path="results")
+    # TTA
+    test_predictions = test(
+        model=model,
+        config=config,
+        data_file=f"datasets/{DATASET}/test.txt",
+        data_root=os.path.join(args.data_root, DATASET),
+        batch_size=BATCH_SIZE,
+        num_workers=WORKERS,
+        device=DEVICE,
+        mode="test",
+        tta=True,
+        num_tta=args.num_tta,
+        log_kappa=True,
+        inference=True,
+    )
+    export_path = f"results/{DATASET}/test_tta_predictions.npy"
+    export_predictions(test_predictions, export_path)
+    mlflow.log_artifact(export_path, artifact_path="results")

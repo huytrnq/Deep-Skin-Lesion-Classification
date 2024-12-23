@@ -29,36 +29,36 @@ class EfficientNet(nn.Module):
         """
         super(EfficientNet, self).__init__()
         if name == "b0":
-            self.model = models.efficientnet_b6(
-                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            self.model = models.efficientnet_b0(
+                weights=EfficientNet_B0_Weights.DEFAULT if pretrained else None
             )
         elif name == "b1":
-            self.model = models.efficientnet_b6(
-                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            self.model = models.efficientnet_b1(
+                weights=EfficientNet_B1_Weights.DEFAULT if pretrained else None
             )
         elif name == "b2":
-            self.model = models.efficientnet_b6(
-                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            self.model = models.efficientnet_b2(
+                weights=EfficientNet_B2_Weights.DEFAULT if pretrained else None
             )
         elif name == "b3":
-            self.model = models.efficientnet_b6(
-                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            self.model = models.efficientnet_b3(
+                weights=EfficientNet_B3_Weights.DEFAULT if pretrained else None
             )
         elif name == "b4":
-            self.model = models.efficientnet_b6(
-                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            self.model = models.efficientnet_b4(
+                weights=EfficientNet_B4_Weights.DEFAULT if pretrained else None
             )
         elif name == "b5":
-            self.model = models.efficientnet_b6(
-                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            self.model = models.efficientnet_b5(
+                weights=EfficientNet_B5_Weights.DEFAULT if pretrained else None
             )
         elif name == "b6":
             self.model = models.efficientnet_b6(
                 weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
             )
         elif name == "b7":
-            self.model = models.efficientnet_b6(
-                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            self.model = models.efficientnet_b7(
+                weights=EfficientNet_B7_Weights.DEFAULT if pretrained else None
             )
         elif name == "v2-s":
             self.model = models.efficientnet_v2_s(

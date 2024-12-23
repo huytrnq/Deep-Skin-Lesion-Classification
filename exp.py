@@ -18,9 +18,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchvision import models
-from torchvision.models.resnet import ResNet50_Weights
-from torchvision.models.efficientnet import EfficientNet_B6_Weights
-from torchvision.models import swin_t, Swin_T_Weights
+from models.efficientnet import EfficientNet
 
 from models.resnet import ResNetLoRA
 from models.loss import FocalLoss
@@ -51,11 +49,11 @@ def arg_parser():
         description="Skin Lesion Classification Experiment"
     )
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
-    parser.add_argument("--epochs", type=int, default=1, help="Number of epochs")
+    parser.add_argument("--epochs", type=int, default=50, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=0.0001, help="Learning rate")
     parser.add_argument("--optimizer", type=str, default="Adam", help="Optimizer")
     parser.add_argument(
-        "--patience", type=int, default=5, help="Patience for early stopping"
+        "--patience", type=int, default=7, help="Patience for early stopping"
     )
     parser.add_argument(
         "--freeze_layers",
@@ -169,21 +167,9 @@ if __name__ == "__main__":
     print("================== Train dataset Info: ==================\n", train_dataset)
     print("================== Val dataset Info: ==================\n", val_dataset)
 
-    # Model
-    # model = models.resnet50(weights=ResNet50_Weights.DEFAULT)
-    # model.fc = torch.nn.Linear(2048, len(CLASSES))
-
     # model = models.efficientnet_b1(weights=EfficientNet_B1_Weights.DEFAULT)
-    model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
-    # model = mlflow.pytorch.load_model(
-    #     "runs:/eee52d223bb9492ab7d4d992e758fd10/skin_lesion_model", map_location=DEVICE
-    # )
-    model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, len(CLASSES))
+    model = EfficientNet(num_classes=len(CLASSES), name="b6", pretrained=True)
 
-    # model = models.efficientnet_v2_m(weights=models.EfficientNet_V2_M_Weights.DEFAULT)
-    # model.classifier[1] = torch.nn.Linear(model.classifier[1].in_features, len(CLASSES))
-
-    # model = ResNetLoRA(weights=ResNet50_Weights.DEFAULT, num_classes=len(CLASSES), rank=64)
     # Load pre-trained ViT-B-16 model
     # Load the ViT-L/16 model with pretrained weights
     # Load the pre-trained Swin Transformer model

@@ -29,37 +29,55 @@ class EfficientNet(nn.Module):
         """
         super(EfficientNet, self).__init__()
         if name == "b0":
-            self.model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+            self.model = models.efficientnet_b6(
+                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            )
         elif name == "b1":
-            self.model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+            self.model = models.efficientnet_b6(
+                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            )
         elif name == "b2":
-            self.model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+            self.model = models.efficientnet_b6(
+                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            )
         elif name == "b3":
-            self.model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+            self.model = models.efficientnet_b6(
+                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            )
         elif name == "b4":
-            self.model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+            self.model = models.efficientnet_b6(
+                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            )
         elif name == "b5":
-            self.model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+            self.model = models.efficientnet_b6(
+                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            )
         elif name == "b6":
-            self.model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+            self.model = models.efficientnet_b6(
+                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            )
         elif name == "b7":
-            self.model = models.efficientnet_b6(weights=EfficientNet_B6_Weights.DEFAULT)
+            self.model = models.efficientnet_b6(
+                weights=EfficientNet_B6_Weights.DEFAULT if pretrained else None
+            )
         elif name == "v2-s":
             self.model = models.efficientnet_v2_s(
-                weights=EfficientNet_V2_S_Weights.DEFAULT
+                weights=EfficientNet_V2_S_Weights.DEFAULT if pretrained else None
             )
         elif name == "v2-m":
             self.model = models.efficientnet_v2_m(
-                weights=EfficientNet_V2_M_Weights.DEFAULT
+                weights=EfficientNet_V2_M_Weights.DEFAULT if pretrained else None
             )
         elif name == "v2-l":
             self.model = models.efficientnet_v2_l(
-                weights=EfficientNet_V2_L_Weights.DEFAULT
+                weights=EfficientNet_V2_L_Weights.DEFAULT if pretrained else None
             )
         else:
             raise ValueError("Invalid model name")
 
-        self.model._fc = nn.Linear(self.model.classifier[1].in_features, num_classes)
+        self.model.classifier[1] = torch.nn.Linear(
+            self.model.classifier[1].in_features, num_classes
+        )
 
     def forward(self, x):
         """Forward pass

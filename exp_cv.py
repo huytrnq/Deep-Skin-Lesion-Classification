@@ -160,7 +160,7 @@ if __name__ == "__main__":
         )
         val_dataset = SkinDataset(
             os.path.join(args.data_root, DATASET),
-            "val",
+            "train",
             train_names[val_index],
             train_labels[val_index],
             test_transform,

@@ -51,7 +51,7 @@ class SkinDataset(Dataset):
 
     def _get_class_distribution(self):
         """Calculate the class distribution."""
-        if self.labels:
+        if self.labels is not None:
             class_counts = Counter(self.labels)
             return dict(class_counts)
         return {}

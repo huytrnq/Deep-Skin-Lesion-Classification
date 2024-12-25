@@ -168,7 +168,7 @@ if __name__ == "__main__":
     print("================== Val dataset Info: ==================\n", val_dataset)
 
     # model = models.efficientnet_b1(weights=EfficientNet_B1_Weights.DEFAULT)
-    model = EfficientNet(num_classes=len(CLASSES), name="b6", pretrained=True)
+    model = EfficientNet(num_classes=len(CLASSES), name="b7", pretrained=True)
 
     # Load pre-trained ViT-B-16 model
     # Load the ViT-L/16 model with pretrained weights

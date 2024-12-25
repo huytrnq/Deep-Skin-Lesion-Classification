@@ -54,7 +54,7 @@ def arg_parser():
     parser.add_argument("--lr", type=float, default=0.0001, help="Learning rate")
     parser.add_argument("--optimizer", type=str, default="Adam", help="Optimizer")
     parser.add_argument(
-        "--patience", type=int, default=7, help="Patience for early stopping"
+        "--patience", type=int, default=10, help="Patience for early stopping"
     )
     parser.add_argument(
         "--freeze_layers",
@@ -273,19 +273,16 @@ if __name__ == "__main__":
             # Adjust learning rate with cosine scheduler
             scheduler.step()
 
-        # Adjust learning rate with cosine scheduler
-        scheduler.step()
+            # Log Metrics
+            log_metrics(train_monitor, epoch, f"train_fold{fold}")
+            log_metrics(val_monitor, epoch, f"val_fold{fold}")
 
-        # Log Metrics
-        log_metrics(train_monitor, epoch, "train")
-        log_metrics(val_monitor, epoch, "val")
-
-        # Early Stopping
-        if val_monitor.early_stopping_check(
-            val_monitor.compute_average("kappa"), model
-        ):
-            print("Early stopping triggered.")
-            break
+            # Early Stopping
+            if val_monitor.early_stopping_check(
+                val_monitor.compute_average("kappa"), model
+            ):
+                print("Early stopping triggered.")
+                break
 
         # Log the Best Model
         print(

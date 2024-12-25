@@ -200,7 +200,7 @@ def test(
     if log_kappa:
         kappa_score = cohen_kappa_score(all_labels.numpy(), all_preds)
 
-    return test_acc, kappa_score, all_probs
+    return test_acc, kappa_score, all_probs, all_labels.numpy()
 
 
 def load_model_and_config(run_id, artifact_path="config.json", device="cuda"):

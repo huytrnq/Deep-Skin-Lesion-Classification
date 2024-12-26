@@ -101,6 +101,7 @@ def arg_parser():
 
 if __name__ == "__main__":
     args = arg_parser()
+    os.makedirs("weights", exist_ok=True)
     # Constants
     CONFIG_PATH = "config.json"
     BATCH_SIZE = args.batch_size
@@ -206,7 +207,7 @@ if __name__ == "__main__":
             metrics=["loss", "accuracy", "kappa"],
             patience=args.patience,
             mode="max",
-            export_path=f"{DATASET}_best_fold{fold}.pth",
+            export_path=f"weights/{DATASET}_best_fold{fold}.pth",
         )
 
         # Optimizer

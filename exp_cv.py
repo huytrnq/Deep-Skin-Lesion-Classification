@@ -299,7 +299,7 @@ if __name__ == "__main__":
     # Load k-folds models
     for fold in range(args.nfolds):
         print(f"Fold {fold + 1}/{args.nfolds}")
-        model = EfficientNet(num_classes=len(CLASSES), name="b6", pretrained=True)
+        model = EfficientNet(num_classes=len(CLASSES), name="b5", pretrained=True)
         model = model.to(DEVICE)
         model.load_state_dict(torch.load(f"weights/{DATASET}_best_fold{fold}.pth"))
 

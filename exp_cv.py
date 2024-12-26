@@ -301,7 +301,7 @@ if __name__ == "__main__":
         print(f"Fold {fold + 1}/{args.nfolds}")
         model = EfficientNet(num_classes=len(CLASSES), name="b6", pretrained=True)
         model = model.to(DEVICE)
-        model.load_state_dict(torch.load(f"{DATASET}_best_fold{fold}.pth"))
+        model.load_state_dict(torch.load(f"weights/{DATASET}_best_fold{fold}.pth"))
 
         #################### Test the model ####################
         test_acc, kappa_score, prediction_probs, test_labels = test(

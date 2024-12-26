@@ -290,7 +290,7 @@ if __name__ == "__main__":
         )
         best_model_state = torch.load(val_monitor.export_path, weights_only=True)
         model.load_state_dict(best_model_state)  # Load the best model state_dict
-        mlflow.pytorch.log_model(model, artifact_path="skin_lesion_model")
+        mlflow.pytorch.log_model(model, artifact_path=f"skin_lesion_model_fold_{fold}")
 
     #################### Test the model with k-folds ####################
     fold_test_predictions = []

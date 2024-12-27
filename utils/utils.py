@@ -101,6 +101,9 @@ def build_transforms(transform_config):
             return transform_class(**params)
         elif transform_name == "ToTensorV2":
             return ToTensorV2()  # Handle ToTensorV2 separately
+        elif transform_name in CUSTOM_TRANSFORMS:
+            # Custom transformations from utils.transform
+            return CUSTOM_TRANSFORMS[transform_name](**params)
         else:
             raise ValueError(f"Unknown transformation: {transform_name}")
 

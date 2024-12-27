@@ -184,7 +184,7 @@ class ObjectAwareRandomCropping(ImageOnlyTransform):
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
         # Perform object-centric cropping
-        cropped_img = self.object_centric_cropper.crop(img)
+        cropped_img = self.object_centric_cropper(img)
 
         # Get the bounding box coordinates
         h, w = cropped_img.shape[:2]

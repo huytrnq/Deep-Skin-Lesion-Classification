@@ -13,14 +13,16 @@ import mlflow
 import mlflow.pytorch
 import mlflow
 import numpy as np
-from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.metrics import cohen_kappa_score
+from sklearn.model_selection import StratifiedKFold
 
 import torch
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchvision import models
-from models.efficientnet import EfficientNet
 
+from models.efficientnet import EfficientNet
+from models.swin import SwinTransformer
 from models.resnet import ResNetLoRA
 from models.loss import FocalLoss
 from test import test
@@ -192,7 +194,8 @@ if __name__ == "__main__":
         )
 
         # Model
-        model = EfficientNet(num_classes=len(CLASSES), name="b6", pretrained=True)
+        # model = EfficientNet(num_classes=len(CLASSES), name="b6", pretrained=True)
+        model = SwinTransformer(num_classes=len(CLASSES), name="v2-s", pretrained=True)
         model = model.to(DEVICE)
 
         # Loss
@@ -348,9 +351,13 @@ if __name__ == "__main__":
     predictions_tta = np.argmax(tta_prediction_probs, axis=1)
     test_acc = np.mean(predictions == test_labels)
     test_acc_tta = np.mean(predictions_tta == test_labels_tta)
+    kappa_score = cohen_kappa_score(predictions, test_labels)
+    kappa_score_tta = cohen_kappa_score(predictions_tta, test_labels_tta)
 
     mlflow.log_metric("test_accuracy", test_acc)
     mlflow.log_metric("test_accuracy_tta", test_acc_tta)
+    mlflow.log_metric("kappa_score", kappa_score)
+    mlflow.log_metric("kappa_score_tta", kappa_score_tta)
 
     export_predictions(prediction_probs, f"results/{DATASET}/prediction_probs.npy")
     export_predictions(

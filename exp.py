@@ -13,13 +13,13 @@ import mlflow
 import mlflow.pytorch
 import mlflow
 
-from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torchvision import models
-from models.efficientnet import EfficientNet
 
+from models.efficientnet import EfficientNet
+from models.swin import SwinTransformer
 from models.resnet import ResNetLoRA
 from models.loss import FocalLoss
 from test import test
@@ -167,28 +167,13 @@ if __name__ == "__main__":
     print("================== Train dataset Info: ==================\n", train_dataset)
     print("================== Val dataset Info: ==================\n", val_dataset)
 
-    # model = models.efficientnet_b1(weights=EfficientNet_B1_Weights.DEFAULT)
-    model = EfficientNet(num_classes=len(CLASSES), name="b7", pretrained=True)
-
-    # Load pre-trained ViT-B-16 model
-    # Load the ViT-L/16 model with pretrained weights
-    # Load the pre-trained Swin Transformer model
-    # weights = Swin_T_Weights.DEFAULT
-    # model = swin_t(weights=weights)
-
-    # # # Modify the classifier head for your specific task
-    # num_classes = len(CLASSES)  # Replace with the number of output classes
-    # model.head = torch.nn.Sequential(
-    #     torch.nn.Linear(model.head.in_features, 512),  # Intermediate dense layer
-    #     torch.nn.ReLU(),  # Non-linear activation
-    #     torch.nn.Dropout(0.5),  # Regularization
-    #     torch.nn.Linear(512, num_classes),  # Final classification layer
-    # )
+    model = SwinTransformer(num_classes=len(CLASSES), name="v2-b", pretrained=True)
+    # model = EfficientNet(num_classes=len(CLASSES), name="b7", pretrained=True)
     model = model.to(DEVICE)
 
     # Loss
     class_weights = compute_class_weights_from_dataset(train_dataset, len(CLASSES))
-    criterion = torch.nn.CrossEntropyLoss(weight=class_weights).to(DEVICE)
+    criterion = torch.nn.CrossEntropyLoss(weight=class_weights if DATASET == "Multiclass" else None).to(DEVICE)
 
     # Monitors
     train_monitor = MetricsMonitor(metrics=["loss", "accuracy", "kappa"])

@@ -131,3 +131,4 @@ mlruns/
 .vscode/
 push.sh
 results/
+weights/

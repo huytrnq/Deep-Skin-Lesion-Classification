@@ -302,11 +302,11 @@ if __name__ == "__main__":
     # Load k-folds models
     for fold in range(args.nfolds):
         print(f"Fold {fold + 1}/{args.nfolds}")
-        model = EfficientNet(num_classes=len(CLASSES), name="b5", pretrained=True)
+        model = SwinTransformer(num_classes=len(CLASSES), name="v2-s", pretrained=True)
         model = model.to(DEVICE)
         model.load_state_dict(torch.load(f"weights/{DATASET}_best_fold{fold}.pth"))
 
-        #################### Test the model ####################
+        #################### Test the model with k-folds on validation set ####################
         test_acc, kappa_score, prediction_probs, test_labels = test(
             model=model,
             config=config,
@@ -343,22 +343,61 @@ if __name__ == "__main__":
         fold_test_predictions.append(prediction_probs)
         fold_test_predictions_tta.append(tta_prediction_probs)
 
+        ############ Generate predictions for the test set ############
+        test_predictions = test(
+            model=model,
+            config=config,
+            data_file=f"datasets/{DATASET}/test.txt",
+            data_root=os.path.join(args.data_root, DATASET),
+            batch_size=BATCH_SIZE,
+            num_workers=WORKERS,
+            device=DEVICE,
+            mode="test",
+            tta=False,
+            num_tta=args.num_tta,
+            log_kappa=True,
+            inference=True,
+        )
+        export_path = f"results/{DATASET}/test_predictions.npy"
+        export_predictions(test_predictions, export_path)
+        mlflow.log_artifact(export_path, artifact_path="results")
+        # TTA
+        test_predictions = test(
+            model=model,
+            config=config,
+            data_file=f"datasets/{DATASET}/test.txt",
+            data_root=os.path.join(args.data_root, DATASET),
+            batch_size=BATCH_SIZE,
+            num_workers=WORKERS,
+            device=DEVICE,
+            mode="test",
+            tta=True,
+            num_tta=args.num_tta,
+            log_kappa=True,
+            inference=True,
+        )
+        export_path = f"results/{DATASET}/test_tta_predictions.npy"
+        export_predictions(test_predictions, export_path)
+        mlflow.log_artifact(export_path, artifact_path="results")
+
     # Average the predictions
     prediction_probs = np.mean(fold_test_predictions, axis=0)
     tta_prediction_probs = np.mean(fold_test_predictions_tta, axis=0)
-    # Compute the metrics
+    # Class predictions
     predictions = np.argmax(prediction_probs, axis=1)
     predictions_tta = np.argmax(tta_prediction_probs, axis=1)
+    # Test accuracy
     test_acc = np.mean(predictions == test_labels)
     test_acc_tta = np.mean(predictions_tta == test_labels_tta)
+    # Cohen's Kappa
     kappa_score = cohen_kappa_score(predictions, test_labels)
     kappa_score_tta = cohen_kappa_score(predictions_tta, test_labels_tta)
-
+    # Log metrics
     mlflow.log_metric("test_accuracy", test_acc)
     mlflow.log_metric("test_accuracy_tta", test_acc_tta)
     mlflow.log_metric("kappa_score", kappa_score)
     mlflow.log_metric("kappa_score_tta", kappa_score_tta)
-
+    # Export predictions
     export_predictions(prediction_probs, f"results/{DATASET}/prediction_probs.npy")
     export_predictions(
         tta_prediction_probs, f"results/{DATASET}/tta_prediction_probs.npy"
@@ -370,40 +409,3 @@ if __name__ == "__main__":
     mlflow.log_artifact(
         f"results/{DATASET}/tta_prediction_probs.npy", artifact_path="results"
     )
-
-    # ############ Generate predictions for the test set ############
-    # test_predictions = test(
-    #     model=model,
-    #     config=config,
-    #     data_file=f"datasets/{DATASET}/test.txt",
-    #     data_root=os.path.join(args.data_root, DATASET),
-    #     batch_size=BATCH_SIZE,
-    #     num_workers=WORKERS,
-    #     device=DEVICE,
-    #     mode="test",
-    #     tta=False,
-    #     num_tta=args.num_tta,
-    #     log_kappa=True,
-    #     inference=True,
-    # )
-    # export_path = f"results/{DATASET}/test_predictions.npy"
-    # export_predictions(test_predictions, export_path)
-    # mlflow.log_artifact(export_path, artifact_path="results")
-    # # TTA
-    # test_predictions = test(
-    #     model=model,
-    #     config=config,
-    #     data_file=f"datasets/{DATASET}/test.txt",
-    #     data_root=os.path.join(args.data_root, DATASET),
-    #     batch_size=BATCH_SIZE,
-    #     num_workers=WORKERS,
-    #     device=DEVICE,
-    #     mode="test",
-    #     tta=True,
-    #     num_tta=args.num_tta,
-    #     log_kappa=True,
-    #     inference=True,
-    # )
-    # export_path = f"results/{DATASET}/test_tta_predictions.npy"
-    # export_predictions(test_predictions, export_path)
-    # mlflow.log_artifact(export_path, artifact_path="results")

@@ -250,7 +250,7 @@ def main(args):
         run_name = mlflow.active_run().info.run_name
         print(f"MLflow run: {run_name}")
         # Test the model
-        test_acc, kappa_score, prediction_probs = test(
+        test_acc, kappa_score, prediction_probs, labels = test(
             model=model,
             config=config,
             data_file=f"datasets/{DATASET}/val.txt",

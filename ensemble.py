@@ -18,42 +18,41 @@ if __name__ == "__main__":
     ## Binary run_ids
     if DATASET == "Binary":
         run_ids = [
-            "d14d502cca984bcb8b0e9f66deec8cd2",
-            "73f0abbe48dc4ca19cdb9b74a1826521",
-            # "c440d5e38b764a32aa66bd623545794e",
-            # "1c717a394d854ec8ada7edd7dfe57feb",
-            # "3143486234e64ee38f8917e6bffa5de2",
-            "aca333832cbf492981651b12b6f27c84",
-            # "01075d0203854b33b15069fe44ffadcd",
-            "457dd607fd764b04aff122d1d4f22b90",
-            "bda73c3b16b34873a0c227d217fd7785",
+            "fe00b64a5b3c4ceb9d46fe5c73db8e1c",
             "16c2e4453bde440db1b5d22058f95fab",
-            "eee52d223bb9492ab7d4d992e758fd10",
+            "aca333832cbf492981651b12b6f27c84",
+            "696928eecfe4429f8de4d13e07cad64c",
+            "aca333832cbf492981651b12b6f27c84",
+            "8c153b477bfe4cb9b4b08c741b6ccbea",
+            "3002b0c7c0584728b7198d26d2b73e6a",
+            "eee52d223bb9492ab7d4d992e758fd10" # Fine-tuning from Multiclass
         ]
     else:
         ## Multiclass run_ids
         run_ids = [
             "776b2e8f8853416a9c959b312a5a4611",
             "f62f6e145791420caf0346263e4b14fa",
-            "c539872187ee434dac603e2a148fcb33",  # Cross-Validation
+            "c539872187ee434dac603e2a148fcb33", # Cross-Validation
+            "0c91e8dd73824d09a8975a3ca2660402", # Fine-tuning from binary
         ]
     classes = np.loadtxt(f"./datasets/{DATASET}/classes.txt", dtype=str)
     names, labels = load_data_file(f"./datasets/{DATASET}/val.txt")
 
     ensemble = Ensemble(
         run_ids=run_ids,
-        mode="geometric_mean",  # Change to the desired mode
         tta=False,
         weights=None,
     )
-    predicts = ensemble.predict()
-    # Calculate the accuracy
-    acc = accuracy_score(labels, predicts)
-    print(f"Ensemble Accuracy: {acc:.4f}")
+    for mode in ["majority", "average", "dempster_shafer", "geometric_mean"]:
+        print(f"============================= Mode: {mode} =============================")
+        predicts = ensemble.predict(mode=mode)
+        # Calculate the accuracy
+        acc = accuracy_score(labels, predicts)
+        print(f"Ensemble Accuracy: {acc:.4f}")
 
-    # Classification report
-    print(classification_report(labels, predicts, target_names=classes))
+        # Classification report
+        print(classification_report(labels, predicts, target_names=classes))
 
-    # Cohen's Kappa
-    kappa = cohen_kappa_score(labels, predicts)
-    print(f"Cohen's Kappa: {kappa:.4f}")
+        # Cohen's Kappa
+        kappa = cohen_kappa_score(labels, predicts)
+        print(f"Cohen's Kappa: {kappa:.4f}")

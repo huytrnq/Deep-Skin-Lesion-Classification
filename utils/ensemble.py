@@ -5,19 +5,16 @@ import mlflow.pytorch
 
 
 class Ensemble:
-    def __init__(self, run_ids, mode="majority", tta=False, weights=None):
+    def __init__(self, run_ids, tta=False, weights=None):
         """
         Initialize the ensemble.
 
         Args:
             run_ids (list): List of MLflow run IDs for the models.
-            mode (str): Ensemble mode ("majority", "average", "weighted_average",
-                        "dempster_shafer", "geometric_mean", "weighted_majority").
             tta (bool): Whether to use Test Time Augmentation (TTA).
             weights (list or None): Weights for models in weighted voting modes.
         """
         self.run_ids = run_ids
-        self.mode = mode
         self.tta = tta
         self.weights = weights
         self.artifact_path = (
@@ -31,6 +28,9 @@ class Ensemble:
             repo_name="Deep-Skin-Lesion-Classification",
             mlflow=True,
         )
+        
+        # Load predictions from MLflow artifacts
+        self.load_predictions_from_mlflow()
 
     def load_predictions_from_mlflow(self):
         """
@@ -194,26 +194,29 @@ class Ensemble:
             final_predictions.append(max(combined_evidence, key=combined_evidence.get))
         return final_predictions
 
-    def predict(self):
+    def predict(self, mode):
         """
         Perform the ensemble prediction using the selected strategy.
+        
+        Args:
+            mode (str): Ensemble mode ("majority", "average", "weighted_average",
+                "dempster_shafer", "geometric_mean", "weighted_majority").
 
         Returns:
             list: Final predictions.
         """
-        self.load_predictions_from_mlflow()
 
-        if self.mode == "average":
+        if mode == "average":
             final_predictions = self.average_voting()
-        elif self.mode == "majority":
+        elif mode == "majority":
             final_predictions = self.majority_voting()
-        elif self.mode == "weighted_average":
+        elif mode == "weighted_average":
             final_predictions = self.weighted_average_voting()
-        elif self.mode == "geometric_mean":
+        elif mode == "geometric_mean":
             final_predictions = self.geometric_mean_voting()
-        elif self.mode == "weighted_majority":
+        elif mode == "weighted_majority":
             final_predictions = self.weighted_majority_voting()
-        elif self.mode == "dempster_shafer":
+        elif mode == "dempster_shafer":
             final_predictions = self.dempster_shafer_combination()
 
             # Handle conflicts and class names
@@ -221,6 +224,6 @@ class Ensemble:
                 self.resolve_prediction(pred) for pred in final_predictions
             ]
         else:
-            raise ValueError(f"Unknown mode: {self.mode}")
+            raise ValueError(f"Unknown mode: {mode}")
 
         return final_predictions

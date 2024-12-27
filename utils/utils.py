@@ -14,12 +14,14 @@ from utils.transform import (
     GaussianNoiseInjection,
     AdvancedHairAugmentation,
     ObjectCentricCropping,
+    ObjectAwareRandomCropping,
 )
 
 CUSTOM_TRANSFORMS = {
     "GaussianNoiseInjection": GaussianNoiseInjection,
     "AdvancedHairAugmentation": AdvancedHairAugmentation,
     "ObjectCentricCropping": ObjectCentricCropping,
+    "ObjectAwareRandomCropping": ObjectAwareRandomCropping,
 }
 
 

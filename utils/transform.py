@@ -149,6 +149,75 @@ class ObjectCentricCropping:
         return crop
 
 
+class ObjectAwareRandomCropping:
+    """Object-aware random cropping for skin lesion images."""
+
+    def __init__(self, width=224, height=224):
+        """
+        Initialize the ObjectAwareRandomCropping class.
+
+        Args:
+            width (int): Width of the cropped image.
+            height (int): Height of the cropped image.
+        """
+        self.crop_size = (height, width)
+        self.object_centric_cropper = ObjectCentricCropping()
+
+    def __call__(self, img):
+        """
+        Perform object-aware random cropping on the image.
+
+        Args:
+            img (PIL.Image or numpy.ndarray): Input image.
+
+        Returns:
+            PIL.Image: Randomly cropped image centered on the object.
+        """
+        # Convert PIL Image to OpenCV format (BGR)
+        if isinstance(img, Image.Image):
+            img = np.array(img)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        # Perform object-centric cropping
+        cropped_img, bbox = self.object_centric_cropper.crop(img)
+
+        # Get the bounding box coordinates
+        x, y, w, h = bbox
+
+        if w < self.crop_size[1] and h < self.crop_size[0]:
+            # If the bounding box is smaller than the desired crop size, return the original image
+            print("Object is too small. Returning the original image.")
+            return Image.fromarray(cv2.cvtColor(cropped_img, cv2.COLOR_BGR2RGB))
+
+        # Generate random offsets within the padded bounding box
+        max_x_offset = max(0, w - self.crop_size[1])
+        max_y_offset = max(0, h - self.crop_size[0])
+        x_offset = random.randint(0, max_x_offset)
+        y_offset = random.randint(0, max_y_offset)
+
+        # Calculate the coordinates of the random crop
+        x_crop = x + x_offset
+        y_crop = y + y_offset
+
+        # Ensure the crop box is within the image boundaries
+        x_crop = max(0, min(x_crop, img.shape[1] - self.crop_size[1]))
+        y_crop = max(0, min(y_crop, img.shape[0] - self.crop_size[0]))
+
+        # Perform the random crop
+        random_crop = cropped_img[
+            y_offset : y_offset + self.crop_size[0],
+            x_offset : x_offset + self.crop_size[1],
+        ]
+
+        # Resize the crop to the desired size
+        random_crop = cv2.resize(random_crop, self.crop_size)
+
+        # Convert back to PIL Image format
+        random_crop = Image.fromarray(cv2.cvtColor(random_crop, cv2.COLOR_BGR2RGB))
+
+        return random_crop
+
+
 class AdvancedHairAugmentation:
     """Add hairs to an image."""
 

@@ -35,7 +35,7 @@ if __name__ == "__main__":
         run_ids = [
             "776b2e8f8853416a9c959b312a5a4611",
             "f62f6e145791420caf0346263e4b14fa",
-            "c539872187ee434dac603e2a148fcb33",
+            "c539872187ee434dac603e2a148fcb33",  # Cross-Validation
         ]
     classes = np.loadtxt(f"./datasets/{DATASET}/classes.txt", dtype=str)
     names, labels = load_data_file(f"./datasets/{DATASET}/val.txt")

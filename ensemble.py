@@ -9,8 +9,8 @@ from sklearn.metrics import (
 from utils.ensemble import Ensemble
 from utils.utils import load_data_file
 
-# DATASET = "Multiclass"
-DATASET = "Binary"
+DATASET = "Multiclass"
+# DATASET = "Binary"
 TTA = False
 
 if __name__ == "__main__":
@@ -27,13 +27,15 @@ if __name__ == "__main__":
             # "01075d0203854b33b15069fe44ffadcd",
             "457dd607fd764b04aff122d1d4f22b90",
             "bda73c3b16b34873a0c227d217fd7785",
+            "16c2e4453bde440db1b5d22058f95fab",
+            "eee52d223bb9492ab7d4d992e758fd10",
         ]
     else:
         ## Multiclass run_ids
         run_ids = [
             "776b2e8f8853416a9c959b312a5a4611",
             "f62f6e145791420caf0346263e4b14fa",
-            "b91974f242e24f8e91ca3bda4b988b92",
+            "c539872187ee434dac603e2a148fcb33",
         ]
     classes = np.loadtxt(f"./datasets/{DATASET}/classes.txt", dtype=str)
     names, labels = load_data_file(f"./datasets/{DATASET}/val.txt")

@@ -7,6 +7,8 @@ import random
 import cv2
 import numpy as np
 from PIL import Image
+import albumentations as A
+from albumentations.core.transforms_interface import BasicTransform, ImageOnlyTransform
 
 import torch
 from torchvision.transforms import functional as F
@@ -140,19 +142,16 @@ class ObjectCentricCropping:
             # Crop the image around the bounding box
             crop = img[y : y + h, x : x + w]
 
-        # Resize the crop to a standard size (e.g., 224x224) for consistent input to models
-        crop = cv2.resize(crop, (224, 224))
-
         # Convert back to PIL Image format
         crop = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
 
         return crop
 
 
-class ObjectAwareRandomCropping:
+class ObjectAwareRandomCropping(ImageOnlyTransform):
     """Object-aware random cropping for skin lesion images."""
 
-    def __init__(self, width=224, height=224):
+    def __init__(self, width=224, height=224, p=1.0):
         """
         Initialize the ObjectAwareRandomCropping class.
 
@@ -160,10 +159,14 @@ class ObjectAwareRandomCropping:
             width (int): Width of the cropped image.
             height (int): Height of the cropped image.
         """
-        self.crop_size = (height, width)
+        super(ObjectAwareRandomCropping, self).__init__()
+        self.width = width
+        self.height = height
+        self.crop_size = (width, height)
         self.object_centric_cropper = ObjectCentricCropping()
+        self.p = p
 
-    def __call__(self, img):
+    def apply(self, img, **params):
         """
         Perform object-aware random cropping on the image.
 
@@ -173,49 +176,49 @@ class ObjectAwareRandomCropping:
         Returns:
             PIL.Image: Randomly cropped image centered on the object.
         """
+        if np.random.uniform(0, 1) > self.p:
+            return img
         # Convert PIL Image to OpenCV format (BGR)
         if isinstance(img, Image.Image):
             img = np.array(img)
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
         # Perform object-centric cropping
-        cropped_img, bbox = self.object_centric_cropper.crop(img)
+        cropped_img = self.object_centric_cropper.crop(img)
 
         # Get the bounding box coordinates
-        x, y, w, h = bbox
+        h, w = cropped_img.shape[:2]
 
         if w < self.crop_size[1] and h < self.crop_size[0]:
             # If the bounding box is smaller than the desired crop size, return the original image
             print("Object is too small. Returning the original image.")
             return Image.fromarray(cv2.cvtColor(cropped_img, cv2.COLOR_BGR2RGB))
 
-        # Generate random offsets within the padded bounding box
+        # Generate random offsets within the image bounds
         max_x_offset = max(0, w - self.crop_size[1])
         max_y_offset = max(0, h - self.crop_size[0])
         x_offset = random.randint(0, max_x_offset)
         y_offset = random.randint(0, max_y_offset)
 
-        # Calculate the coordinates of the random crop
-        x_crop = x + x_offset
-        y_crop = y + y_offset
-
-        # Ensure the crop box is within the image boundaries
-        x_crop = max(0, min(x_crop, img.shape[1] - self.crop_size[1]))
-        y_crop = max(0, min(y_crop, img.shape[0] - self.crop_size[0]))
+        # Calculate the crop coordinates
+        x_crop = max(0, min(x_offset, cropped_img.shape[1] - self.crop_size[1]))
+        y_crop = max(0, min(y_offset, cropped_img.shape[0] - self.crop_size[0]))
 
         # Perform the random crop
         random_crop = cropped_img[
-            y_offset : y_offset + self.crop_size[0],
-            x_offset : x_offset + self.crop_size[1],
+            y_crop : y_crop + self.crop_size[0], x_crop : x_crop + self.crop_size[1]
         ]
 
-        # Resize the crop to the desired size
-        random_crop = cv2.resize(random_crop, self.crop_size)
-
-        # Convert back to PIL Image format
-        random_crop = Image.fromarray(cv2.cvtColor(random_crop, cv2.COLOR_BGR2RGB))
-
         return random_crop
+
+    def get_transform_init_args_names(self):
+        """
+        Return the arguments required to initialize the transform.
+
+        Returns:
+            tuple: Tuple of argument names.
+        """
+        return ("width", "height", "p")
 
 
 class AdvancedHairAugmentation:

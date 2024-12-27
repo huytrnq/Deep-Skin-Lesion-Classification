@@ -109,7 +109,6 @@ class ObjectCentricCropping:
         # Convert PIL Image to OpenCV format (BGR)
         if isinstance(img, Image.Image):
             img = np.array(img)
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
         # Convert the image to grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -141,9 +140,6 @@ class ObjectCentricCropping:
 
             # Crop the image around the bounding box
             crop = img[y : y + h, x : x + w]
-
-        # Convert back to PIL Image format
-        crop = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
 
         return crop
 
@@ -181,7 +177,6 @@ class ObjectAwareRandomCropping(ImageOnlyTransform):
         # Convert PIL Image to OpenCV format (BGR)
         if isinstance(img, Image.Image):
             img = np.array(img)
-            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
         # Perform object-centric cropping
         cropped_img = self.object_centric_cropper(img)
@@ -192,7 +187,7 @@ class ObjectAwareRandomCropping(ImageOnlyTransform):
         if w < self.crop_size[1] and h < self.crop_size[0]:
             # If the bounding box is smaller than the desired crop size, return the original image
             print("Object is too small. Returning the original image.")
-            return Image.fromarray(cv2.cvtColor(cropped_img, cv2.COLOR_BGR2RGB))
+            return img
 
         # Generate random offsets within the image bounds
         max_x_offset = max(0, w - self.crop_size[1])

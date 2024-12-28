@@ -23,7 +23,7 @@ def arg_parser():
     )
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size")
     parser.add_argument(
-        "--workers", type=int, default=os.cpu_count()/2, help="Number of workers"
+        "--workers", type=int, default=os.cpu_count()//2, help="Number of workers"
     )
     parser.add_argument(
         "--data_root",

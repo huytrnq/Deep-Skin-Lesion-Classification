@@ -92,7 +92,7 @@ if __name__ == "__main__":
         # Load k-folds models
         for fold in range(args.nfolds):
             print(f"Fold {fold + 1}/{args.nfolds}")
-            model, config = load_model_and_config(RUN_ID, ARTIFACT_PATH, DEVICE)
+            model, config = load_model_and_config(RUN_ID, ARTIFACT_PATH, f"skin_lesion_model_fold_{fold}", DEVICE)
             model = model.to(DEVICE)
 
             #################### Test the model with k-folds on validation set ####################

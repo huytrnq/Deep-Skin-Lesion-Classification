@@ -203,9 +203,9 @@ def test(
     return test_acc, kappa_score, all_probs, all_labels.numpy()
 
 
-def load_model_and_config(run_id, artifact_path="config.json", device="cuda"):
+def load_model_and_config(run_id, artifact_path="config.json", model_path="skin_lesion_model", device="cuda"):
     """Load the trained model and configuration."""
-    model_uri = f"runs:/{run_id}/skin_lesion_model"
+    model_uri = f"runs:/{run_id}/{model_path}"
     config_path = "config.json"
 
     # Download the configuration file from the run

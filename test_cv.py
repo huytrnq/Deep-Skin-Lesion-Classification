@@ -166,7 +166,7 @@ if __name__ == "__main__":
         )
         
         ### Generate predictions for the test set
-        if not args.generate_predictions:
+        if args.generate_predictions:
             test_prediction_probs = np.mean(fold_test_without_labels, axis=0)
             # Class predictions
             test_predictions = np.argmax(test_prediction_probs, axis=1)

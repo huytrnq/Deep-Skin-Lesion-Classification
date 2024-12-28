@@ -38,6 +38,11 @@ def arg_parser():
         help="Number of TTA iterations",
     )
     parser.add_argument(
+        "--tta",
+        action="store_true",
+        help="Use Test Time Augmentation",
+    )
+    parser.add_argument(
         "--dataset",
         type=str,
         default="binary",
@@ -64,7 +69,7 @@ if __name__ == "__main__":
     # Constants
     RUN_ID = args.run_id
     ARTIFACT_PATH = "config/config.json"
-    BATCH_SIZE = args.batch_size
+    BATCH_SIZE = args.batch_size if not args.tta else 1
     WORKERS = args.workers
     DEVICE = (
         "mps"
@@ -104,7 +109,8 @@ if __name__ == "__main__":
                 num_workers=WORKERS,
                 device=DEVICE,
                 mode="val",
-                tta=False,
+                tta=False if not args.tta else True,
+                num_tta=args.num_tta,
                 log_kappa=True,
                 inference=False,
             )
@@ -123,12 +129,12 @@ if __name__ == "__main__":
                 num_workers=WORKERS,
                 device=DEVICE,
                 mode="test",
-                tta=False,
+                tta=False if not args.tta else True,
                 num_tta=args.num_tta,
                 log_kappa=True,
                 inference=True,
             )
-            export_path = f"results/{DATASET}/test_predictions.npy"
+            export_path = f"results/{DATASET}/test_predictions.npy" if not args.tta else f"results/{DATASET}/test_tta_predictions.npy"
             export_predictions(test_predictions, export_path)
             mlflow.log_artifact(export_path, artifact_path="results")
 
@@ -144,11 +150,11 @@ if __name__ == "__main__":
         print(f"Test Accuracy: {test_acc:.4f}")
         print(f"Kappa Score: {kappa_score:.4f}")
         # Log metrics
-        mlflow.log_metric("test_accuracy", test_acc)
-        mlflow.log_metric("kappa_score", kappa_score)
+        mlflow.log_metric("test_accuracy" if not args.tta else "test_accuracy_tta", test_acc)
+        mlflow.log_metric("kappa_score" if not args.tta else "kappa_score_tta", kappa_score)
         # Export predictions
-        export_predictions(prediction_probs, f"results/{DATASET}/prediction_probs.npy")
+        export_predictions(prediction_probs, f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy")
         ## Log predictions to artifacts
         mlflow.log_artifact(
-            f"results/{DATASET}/prediction_probs.npy", artifact_path="results"
+            f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy",
         )

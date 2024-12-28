@@ -141,6 +141,8 @@ if __name__ == "__main__":
         test_acc = np.mean(predictions == test_labels)
         # Cohen's Kappa
         kappa_score = cohen_kappa_score(predictions, test_labels)
+        print(f"Test Accuracy: {test_acc:.4f}")
+        print(f"Kappa Score: {kappa_score:.4f}")
         # Log metrics
         mlflow.log_metric("test_accuracy", test_acc)
         mlflow.log_metric("kappa_score", kappa_score)

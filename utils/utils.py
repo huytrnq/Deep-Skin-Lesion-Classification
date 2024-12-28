@@ -187,6 +187,7 @@ def export_predictions(
         export_path (str): Path to the npy file to save the predictions.
     """
     # Save the predictions to a npy file
+    print(f"=============== Exporting predictions to: {export_path} ===============")
     with open(export_path, "wb") as f:
         np.save(f, predictions)
 

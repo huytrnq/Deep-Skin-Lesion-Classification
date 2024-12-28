@@ -60,6 +60,11 @@ def arg_parser():
         default="aca333832cbf492981651b12b6f27c84",
         help="Run ID for loading the model",
     )
+    parser.add_argument(
+        "--generate_predictions",
+        action="store_true",
+        help="Use Test Time Augmentation",
+    )
 
     return parser.parse_args()
 
@@ -93,6 +98,7 @@ if __name__ == "__main__":
     #################### Test the model with k-folds ####################
     with mlflow.start_run(run_id=RUN_ID):
         fold_test_predictions = []
+        fold_test_without_labels = []
         # Load k-folds models
         for fold in range(args.nfolds):
             print(f"Fold {fold + 1}/{args.nfolds}")
@@ -120,25 +126,25 @@ if __name__ == "__main__":
             fold_test_predictions.append(prediction_probs)
 
             ############ Generate predictions for the test set ############
-            test_predictions = test(
-                model=model,
-                config=config,
-                data_file=f"datasets/{DATASET}/test.txt",
-                data_root=os.path.join(args.data_root, DATASET),
-                batch_size=BATCH_SIZE,
-                num_workers=WORKERS,
-                device=DEVICE,
-                mode="test",
-                tta=False if not args.tta else True,
-                num_tta=args.num_tta,
-                log_kappa=True,
-                inference=True,
-            )
-            export_path = f"results/{DATASET}/test_predictions.npy" if not args.tta else f"results/{DATASET}/test_tta_predictions.npy"
-            export_predictions(test_predictions, export_path)
-            mlflow.log_artifact(export_path, artifact_path="results")
+            if args.generate_predictions:
+                test_prediction_probs = test(
+                    model=model,
+                    config=config,
+                    data_file=f"datasets/{DATASET}/test.txt",
+                    data_root=os.path.join(args.data_root, DATASET),
+                    batch_size=BATCH_SIZE,
+                    num_workers=WORKERS,
+                    device=DEVICE,
+                    mode="test",
+                    tta=False if not args.tta else True,
+                    num_tta=args.num_tta,
+                    log_kappa=True,
+                    inference=True,
+                )
+                
+                fold_test_without_labels.append(test_prediction_probs)
 
-
+        ### Test Evaluation
         # Average the predictions
         prediction_probs = np.mean(fold_test_predictions, axis=0)
         # Class predictions
@@ -158,3 +164,14 @@ if __name__ == "__main__":
         mlflow.log_artifact(
             f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy",
         )
+        
+        ### Generate predictions for the test set
+        if not args.generate_predictions:
+            test_prediction_probs = np.mean(fold_test_without_labels, axis=0)
+            # Class predictions
+            test_predictions = np.argmax(test_prediction_probs, axis=1)
+            # Export predictions
+            export_path = f"results/{DATASET}/test_predictions.npy" if not args.tta else f"results/{DATASET}/test_tta_predictions.npy"
+            export_predictions(test_predictions, export_path)
+            mlflow.log_artifact(export_path, artifact_path="results")
+    

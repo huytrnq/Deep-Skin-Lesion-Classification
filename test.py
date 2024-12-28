@@ -117,7 +117,7 @@ def test(
 ):
     """Test a trained model on a dataset."""
     # Data Transformations
-    tta_transform = build_transforms(config["transformations"]["tta"])
+    train_transform = build_transforms(config["transformations"]["train"])
     test_transform = build_transforms(config["transformations"]["test"])
 
     # Load test data
@@ -129,7 +129,7 @@ def test(
         mode,
         test_names,
         test_labels,
-        tta_transform if tta else test_transform,
+        train_transform if tta else test_transform,
         inference=inference,
     )
     test_loader = DataLoader(

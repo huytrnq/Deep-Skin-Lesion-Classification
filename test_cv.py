@@ -21,7 +21,7 @@ def arg_parser():
     parser = argparse.ArgumentParser(
         description="Skin Lesion Classification Experiment"
     )
-    parser.add_argument("--batch_size", type=int, default=1, help="Batch size")
+    parser.add_argument("--batch_size", type=int, default=16, help="Batch size")
     parser.add_argument(
         "--workers", type=int, default=os.cpu_count()//2, help="Number of workers"
     )
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         export_predictions(prediction_probs, f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy")
         ## Log predictions to artifacts
         mlflow.log_artifact(
-            f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy",
+            f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy", artifact_path="results"
         )
         
         ### Generate predictions for the test set

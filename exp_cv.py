@@ -144,14 +144,6 @@ if __name__ == "__main__":
 
     # Load data paths and labels
     train_names, train_labels = load_data_file(f"datasets/{DATASET}/train.txt")
-    #################### Add validation data to the training data for submission ####################
-    val_names, val_labels = load_data_file(f"datasets/{DATASET}/val.txt")
-    
-    # Combine train and validation data
-    train_names.extend(val_names)
-    train_labels.extend(val_labels)
-    #################### Add validation data to the training data for submission ####################
-
 
     # Cross-Validation Training
     train_names = np.array(train_names)
@@ -244,7 +236,6 @@ if __name__ == "__main__":
         mlflow.log_param("freeze_layers", args.freeze_layers)
         mlflow.log_param("num_workers", WORKERS)
         mlflow.log_param("scheduler", scheduler.__class__.__name__)
-        mlflow.log_param("info", "add validation data to the training data for submission")
 
         # Training Phase
         print("====================== Training phase ======================")

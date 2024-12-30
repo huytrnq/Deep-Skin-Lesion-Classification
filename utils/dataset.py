@@ -22,7 +22,7 @@ class SkinDataset(Dataset):
             sub_folder (str): Sub-folder containing the images (e.g., 'train', 'val', 'test').
             names (list): List of filenames of the images (relative to root_path).
             labels (list, optional): List of corresponding class IDs for the images.
-                                     Required if inference=False.
+                                    Required if inference=False.
             transform (callable, optional): Optional transform to apply to the images.
             inference (bool): If True, the dataset will not expect labels (default=False).
         """

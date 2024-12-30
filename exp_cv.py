@@ -244,6 +244,7 @@ if __name__ == "__main__":
         mlflow.log_param("freeze_layers", args.freeze_layers)
         mlflow.log_param("num_workers", WORKERS)
         mlflow.log_param("scheduler", scheduler.__class__.__name__)
+        mlflow.log_param("info", "add validation data to the training data for submission")
 
         # Training Phase
         print("====================== Training phase ======================")

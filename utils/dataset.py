@@ -14,12 +14,11 @@ class SkinDataset(Dataset):
     """Custom PyTorch dataset for the skin lesion dataset."""
 
     def __init__(
-        self, root_path, sub_folder, names, labels=None, transform=None, inference=False
+        self, root_path, names, labels=None, transform=None, inference=False
     ):
         """
         Args:
             root_path (str): Root directory containing the images.
-            sub_folder (str): Sub-folder containing the images (e.g., 'train', 'val', 'test').
             names (list): List of filenames of the images (relative to root_path).
             labels (list, optional): List of corresponding class IDs for the images.
                                     Required if inference=False.
@@ -27,7 +26,6 @@ class SkinDataset(Dataset):
             inference (bool): If True, the dataset will not expect labels (default=False).
         """
         self.root_path = root_path
-        self.sub_folder = sub_folder
         self.names = names
         self.labels = labels
         self.transform = transform
@@ -59,7 +57,7 @@ class SkinDataset(Dataset):
     def __getitem__(self, idx):
         """Fetch the image (and label if available) at the given index."""
         # Construct the full path to the image
-        img_path = os.path.join(self.root_path, self.sub_folder, self.names[idx])
+        img_path = os.path.join(self.root_path, self.names[idx])
 
         # Load the image
         image = Image.open(img_path).convert("RGB")  # Convert to RGB if needed

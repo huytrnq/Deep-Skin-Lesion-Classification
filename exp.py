@@ -144,14 +144,12 @@ if __name__ == "__main__":
     # Split the data into train, validation and using validation data as test data
     train_dataset = SkinDataset(
         os.path.join(args.data_root, DATASET),
-        "train",
         train_names,
         train_labels,
         train_transform,
     )
     val_dataset = SkinDataset(
         os.path.join(args.data_root, DATASET),
-        "val",
         val_names,
         val_labels,
         test_transform,

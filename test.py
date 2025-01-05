@@ -126,7 +126,6 @@ def test(
     # Create test dataset and dataloader
     test_dataset = SkinDataset(
         data_root,
-        mode,
         test_names,
         test_labels,
         tta_transform if tta else test_transform,

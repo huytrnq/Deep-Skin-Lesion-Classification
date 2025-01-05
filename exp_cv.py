@@ -156,14 +156,12 @@ if __name__ == "__main__":
         print(f"Fold {fold + 1}/{args.nfolds}")
         train_dataset = SkinDataset(
             os.path.join(args.data_root, DATASET),
-            "train",
             train_names[train_index],
             train_labels[train_index],
             train_transform,
         )
         val_dataset = SkinDataset(
             os.path.join(args.data_root, DATASET),
-            "train",
             train_names[val_index],
             train_labels[val_index],
             test_transform,

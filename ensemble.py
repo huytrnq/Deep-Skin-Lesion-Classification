@@ -18,14 +18,15 @@ if __name__ == "__main__":
     ## Binary run_ids
     if DATASET == "Binary":
         run_ids = [
-            # "16c2e4453bde440db1b5d22058f95fab",
-            # "aca333832cbf492981651b12b6f27c84",
+            "16c2e4453bde440db1b5d22058f95fab",
+            "aca333832cbf492981651b12b6f27c84",
             "696928eecfe4429f8de4d13e07cad64c",
             "aca333832cbf492981651b12b6f27c84",
-            # "8c153b477bfe4cb9b4b08c741b6ccbea",
-            # "3002b0c7c0584728b7198d26d2b73e6a",
+            "8c153b477bfe4cb9b4b08c741b6ccbea",
+            "3002b0c7c0584728b7198d26d2b73e6a",
             "fe00b64a5b3c4ceb9d46fe5c73db8e1c", # Cross-Validation
             "923a7b14fcbb4bbba68036011ce957dc", # Cross-Validation 2
+            "e343a3f6a8f8401390d2bdd7c8ae87e7", # Cross-Validation 736
             # "eee52d223bb9492ab7d4d992e758fd10" # Fine-tuning from Multiclass
         ]
     else:

@@ -111,11 +111,7 @@ if __name__ == "__main__":
     # Dataset type
     DATASET = "Binary" if args.dataset.lower() == "binary" else "Multiclass"
     # Classes
-    CLASSES = (
-        ["nevus", "melanoma", "others"]
-        if DATASET == "Multiclass"
-        else ["nevous", "others"]
-    )
+    CLASSES = ["bcc", "mel", "scc"] if DATASET == "Multiclass" else ["nevous", "others"]
 
     dagshub.init(
         repo_owner="huytrnq", repo_name="Deep-Skin-Lesion-Classification", mlflow=True
@@ -171,7 +167,9 @@ if __name__ == "__main__":
 
     # Loss
     class_weights = compute_class_weights_from_dataset(train_dataset, len(CLASSES))
-    criterion = torch.nn.CrossEntropyLoss(weight=class_weights if DATASET == "Multiclass" else None).to(DEVICE)
+    criterion = torch.nn.CrossEntropyLoss(
+        weight=class_weights if DATASET == "Multiclass" else None
+    ).to(DEVICE)
 
     # Monitors
     train_monitor = MetricsMonitor(metrics=["loss", "accuracy", "kappa"])

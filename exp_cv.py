@@ -121,11 +121,7 @@ if __name__ == "__main__":
     # Dataset type
     DATASET = "Binary" if args.dataset.lower() == "binary" else "Multiclass"
     # Classes
-    CLASSES = (
-        ["nevus", "melanoma", "others"]
-        if DATASET == "Multiclass"
-        else ["nevous", "others"]
-    )
+    CLASSES = ["bcc", "mel", "scc"] if DATASET == "Multiclass" else ["nevous", "others"]
 
     dagshub.init(
         repo_owner="huytrnq", repo_name="Deep-Skin-Lesion-Classification", mlflow=True
@@ -144,7 +140,7 @@ if __name__ == "__main__":
 
     # Load data paths and labels
     train_names, train_labels = load_data_file(f"datasets/{DATASET}/train.txt")
-    
+
     # Add validation set to the training set for final training
     val_names, val_labels = load_data_file(f"datasets/{DATASET}/val.txt")
     train_names = np.concatenate((train_names, val_names))

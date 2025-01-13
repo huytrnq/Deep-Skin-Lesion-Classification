@@ -23,7 +23,7 @@ def arg_parser():
     )
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size")
     parser.add_argument(
-        "--workers", type=int, default=os.cpu_count()//2, help="Number of workers"
+        "--workers", type=int, default=os.cpu_count() // 2, help="Number of workers"
     )
     parser.add_argument(
         "--data_root",
@@ -85,11 +85,7 @@ if __name__ == "__main__":
     # Dataset type
     DATASET = "Binary" if args.dataset.lower() == "binary" else "Multiclass"
     # Classes
-    CLASSES = (
-        ["nevus", "melanoma", "others"]
-        if DATASET == "Multiclass"
-        else ["nevous", "others"]
-    )
+    CLASSES = ["bcc", "mel", "scc"] if DATASET == "Multiclass" else ["nevous", "others"]
 
     dagshub.init(
         repo_owner="huytrnq", repo_name="Deep-Skin-Lesion-Classification", mlflow=True
@@ -103,7 +99,9 @@ if __name__ == "__main__":
         # Load k-folds models
         for fold in range(args.nfolds):
             print(f"Fold {fold + 1}/{args.nfolds}")
-            model, config = load_model_and_config(RUN_ID, ARTIFACT_PATH, f"skin_lesion_model_fold_{fold}", DEVICE)
+            model, config = load_model_and_config(
+                RUN_ID, ARTIFACT_PATH, f"skin_lesion_model_fold_{fold}", DEVICE
+            )
             model = model.to(DEVICE)
 
             if not args.inference:
@@ -142,7 +140,7 @@ if __name__ == "__main__":
                     log_kappa=True,
                     inference=True,
                 )
-                
+
                 fold_test_without_labels.append(test_prediction_probs)
 
         ### Test Evaluation
@@ -158,13 +156,29 @@ if __name__ == "__main__":
             print(f"Test Accuracy: {test_acc:.4f}")
             print(f"Kappa Score: {kappa_score:.4f}")
             # Log metrics
-            mlflow.log_metric("test_accuracy" if not args.tta else "test_accuracy_tta", test_acc)
-            mlflow.log_metric("kappa_score" if not args.tta else "kappa_score_tta", kappa_score)
+            mlflow.log_metric(
+                "test_accuracy" if not args.tta else "test_accuracy_tta", test_acc
+            )
+            mlflow.log_metric(
+                "kappa_score" if not args.tta else "kappa_score_tta", kappa_score
+            )
             # Export predictions
-            export_predictions(prediction_probs, f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy")
+            export_predictions(
+                prediction_probs,
+                (
+                    f"results/{DATASET}/prediction_probs.npy"
+                    if not args.tta
+                    else f"results/{DATASET}/tta_prediction_probs.npy"
+                ),
+            )
             ## Log predictions to artifacts
             mlflow.log_artifact(
-                f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy", artifact_path="results"
+                (
+                    f"results/{DATASET}/prediction_probs.npy"
+                    if not args.tta
+                    else f"results/{DATASET}/tta_prediction_probs.npy"
+                ),
+                artifact_path="results",
             )
         else:
             ### Generate predictions for the test set
@@ -172,12 +186,15 @@ if __name__ == "__main__":
             # Class predictions
             test_predictions = np.argmax(test_prediction_probs, axis=1)
             # Export predictions
-            export_path = f"results/{DATASET}/test_predictions.csv" if not args.tta else f"results/{DATASET}/test_tta_predictions.csv"
-            
+            export_path = (
+                f"results/{DATASET}/test_predictions.csv"
+                if not args.tta
+                else f"results/{DATASET}/test_tta_predictions.csv"
+            )
+
             with open(export_path, "w") as f:
                 f.write("image_name,prediction\n")
                 for image_name, prediction in zip(all_image_names, test_predictions):
                     f.write(f"{image_name},{prediction}\n")
-            
+
             mlflow.log_artifact(export_path, artifact_path="results")
-    

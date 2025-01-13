@@ -61,7 +61,7 @@ def arg_parser():
         help="Run ID for loading the model",
     )
     parser.add_argument(
-        "--generate_predictions",
+        "--inference",
         action="store_true",
         help="Use Test Time Augmentation",
     )
@@ -99,35 +99,36 @@ if __name__ == "__main__":
     with mlflow.start_run(run_id=RUN_ID):
         fold_test_predictions = []
         fold_test_without_labels = []
+        all_image_names = []
         # Load k-folds models
         for fold in range(args.nfolds):
             print(f"Fold {fold + 1}/{args.nfolds}")
             model, config = load_model_and_config(RUN_ID, ARTIFACT_PATH, f"skin_lesion_model_fold_{fold}", DEVICE)
             model = model.to(DEVICE)
 
-            #################### Test the model with k-folds on validation set ####################
-            test_acc, kappa_score, prediction_probs, test_labels = test(
-                model=model,
-                config=config,
-                data_file=f"datasets/{DATASET}/val.txt",
-                data_root=os.path.join(args.data_root, DATASET),
-                batch_size=BATCH_SIZE,
-                num_workers=WORKERS,
-                device=DEVICE,
-                mode="val",
-                tta=False if not args.tta else True,
-                num_tta=args.num_tta,
-                log_kappa=True,
-                inference=False,
-            )
-            print(f"Test Accuracy: {test_acc:.4f}")
-            print(f"Kappa Score: {kappa_score:.4f}")
+            if not args.inference:
+                #################### Test the model with k-folds on validation set ####################
+                test_acc, kappa_score, prediction_probs, test_labels = test(
+                    model=model,
+                    config=config,
+                    data_file=f"datasets/{DATASET}/val.txt",
+                    data_root=os.path.join(args.data_root, DATASET),
+                    batch_size=BATCH_SIZE,
+                    num_workers=WORKERS,
+                    device=DEVICE,
+                    mode="val",
+                    tta=False if not args.tta else True,
+                    num_tta=args.num_tta,
+                    log_kappa=True,
+                    inference=False,
+                )
+                print(f"Test Accuracy: {test_acc:.4f}")
+                print(f"Kappa Score: {kappa_score:.4f}")
 
-            fold_test_predictions.append(prediction_probs)
-
-            ############ Generate predictions for the test set ############
-            if args.generate_predictions:
-                test_prediction_probs = test(
+                fold_test_predictions.append(prediction_probs)
+            else:
+                ############ Generate predictions for the test set ############
+                test_prediction_probs, all_image_names = test(
                     model=model,
                     config=config,
                     data_file=f"datasets/{DATASET}/test.txt",
@@ -145,33 +146,38 @@ if __name__ == "__main__":
                 fold_test_without_labels.append(test_prediction_probs)
 
         ### Test Evaluation
-        # Average the predictions
-        prediction_probs = np.mean(fold_test_predictions, axis=0)
-        # Class predictions
-        predictions = np.argmax(prediction_probs, axis=1)
-        # Test accuracy
-        test_acc = np.mean(predictions == test_labels)
-        # Cohen's Kappa
-        kappa_score = cohen_kappa_score(predictions, test_labels)
-        print(f"Test Accuracy: {test_acc:.4f}")
-        print(f"Kappa Score: {kappa_score:.4f}")
-        # Log metrics
-        mlflow.log_metric("test_accuracy" if not args.tta else "test_accuracy_tta", test_acc)
-        mlflow.log_metric("kappa_score" if not args.tta else "kappa_score_tta", kappa_score)
-        # Export predictions
-        export_predictions(prediction_probs, f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy")
-        ## Log predictions to artifacts
-        mlflow.log_artifact(
-            f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy", artifact_path="results"
-        )
-        
-        ### Generate predictions for the test set
-        if args.generate_predictions:
+        if not args.inference:
+            # Average the predictions
+            prediction_probs = np.mean(fold_test_predictions, axis=0)
+            # Class predictions
+            predictions = np.argmax(prediction_probs, axis=1)
+            # Test accuracy
+            test_acc = np.mean(predictions == test_labels)
+            # Cohen's Kappa
+            kappa_score = cohen_kappa_score(predictions, test_labels)
+            print(f"Test Accuracy: {test_acc:.4f}")
+            print(f"Kappa Score: {kappa_score:.4f}")
+            # Log metrics
+            mlflow.log_metric("test_accuracy" if not args.tta else "test_accuracy_tta", test_acc)
+            mlflow.log_metric("kappa_score" if not args.tta else "kappa_score_tta", kappa_score)
+            # Export predictions
+            export_predictions(prediction_probs, f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy")
+            ## Log predictions to artifacts
+            mlflow.log_artifact(
+                f"results/{DATASET}/prediction_probs.npy" if not args.tta else f"results/{DATASET}/tta_prediction_probs.npy", artifact_path="results"
+            )
+        else:
+            ### Generate predictions for the test set
             test_prediction_probs = np.mean(fold_test_without_labels, axis=0)
             # Class predictions
             test_predictions = np.argmax(test_prediction_probs, axis=1)
             # Export predictions
-            export_path = f"results/{DATASET}/test_predictions.npy" if not args.tta else f"results/{DATASET}/test_tta_predictions.npy"
-            export_predictions(test_predictions, export_path)
+            export_path = f"results/{DATASET}/test_predictions.csv" if not args.tta else f"results/{DATASET}/test_tta_predictions.csv"
+            
+            with open(export_path, "w") as f:
+                f.write("image_name,prediction\n")
+                for image_name, prediction in zip(all_image_names, test_predictions):
+                    f.write(f"{image_name},{prediction}\n")
+            
             mlflow.log_artifact(export_path, artifact_path="results")
     

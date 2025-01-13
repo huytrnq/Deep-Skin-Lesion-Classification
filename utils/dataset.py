@@ -72,7 +72,7 @@ class SkinDataset(Dataset):
 
         # Return only the image for inference
         if self.inference:
-            return image
+            return image, self.names[idx]
 
         # Fetch the label
         label = self.labels[idx]

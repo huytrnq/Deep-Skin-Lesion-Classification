@@ -148,6 +148,7 @@ def test(
     with torch.no_grad():
         all_probs = []
         all_labels = []
+        all_image_names = []
 
         for i in range(num_tta if tta else 1):
             current_probs = []
@@ -158,7 +159,9 @@ def test(
                 desc=f"TTA Iteration {i + 1}/{num_tta}" if tta else "Testing",
             ):
                 if inference:
-                    batch_images = batch.to(device)
+                    batch_images, image_names = batch
+                    batch_images = batch_images.to(device)
+                    all_image_names.extend(image_names)
                 else:
                     batch_images, batch_labels = batch
                     batch_images = batch_images.to(device)
@@ -186,7 +189,7 @@ def test(
         all_probs = all_probs[0].numpy()
 
     if inference:
-        return all_probs
+        return all_probs, all_image_names
 
     # Calculate discrete predictions
     all_preds = all_probs.argmax(axis=1)

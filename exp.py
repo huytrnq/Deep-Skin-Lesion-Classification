@@ -130,9 +130,6 @@ if __name__ == "__main__":
 
     # Load data paths and labels
     train_names, train_labels = load_data_file(f"datasets/{DATASET}/train.txt")
-    # train_names, val_names, train_labels, val_labels = train_test_split(
-    #     train_names, train_labels, test_size=0.1, random_state=42, stratify=train_labels
-    # )
 
     val_names, val_labels = load_data_file(f"datasets/{DATASET}/val.txt")
 

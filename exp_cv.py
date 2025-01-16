@@ -141,11 +141,6 @@ if __name__ == "__main__":
     # Load data paths and labels
     train_names, train_labels = load_data_file(f"datasets/{DATASET}/train.txt")
 
-    # Add validation set to the training set for final training
-    val_names, val_labels = load_data_file(f"datasets/{DATASET}/val.txt")
-    train_names = np.concatenate((train_names, val_names))
-    train_labels = np.concatenate((train_labels, val_labels))
-
     # Cross-Validation Training
     train_names = np.array(train_names)
     train_labels = np.array(train_labels)

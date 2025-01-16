@@ -100,12 +100,12 @@ The dataset consists of more than 15,000 images for binary classification and ar
 | **ResNext50**   | Full Augmentation   | 512        | 0.3568 | 0.9186   | 0.8371 |
 | **ResNext50**   | Full Augmentation   | 384        | 0.3457 | 0.9249   | 0.8498 |
 | **ResNext50**   | Full Augmentation   | 416        | 0.3638 | 0.9283   | 0.8540 |
-| **EfficientNet** B6 | Full Augmentation | 512        | 0.3307 | 0.9283   | 0.8566 |
-| **EfficientNet** B6 | Full Augmentation | 640        | 0.2975 | 0.9318   | 0.8634 |
-| **EfficientNet** B6 | Full Augmentation | 736        | **0.2877** | 0.9259   | 0.8519 |
-| **Ensemble**    | -                   | -          | -      | **0.9391** | 0.8782 |
-| **EfficientNet** B6 | Augmentation + CV | 640        | -      | **0.9420** | **0.8840** |
-| **EfficientNet** B6 | Augmentation + CV | 736        | -      | 0.9407   | 0.8814 |
+| **EfficientNet B6** | Full Augmentation | 512        | 0.3307 | 0.9283   | 0.8566 |
+| **EfficientNet B6** | Full Augmentation | 640        | 0.2975 | 0.9318   | 0.8634 |
+| **EfficientNet B6** | Full Augmentation | 736        | **0.2877** | 0.9259   | 0.8519 |
+| **EfficientNet B6** | Ensemble                   | -          | -      | **0.9391** | 0.8782 |
+| **EfficientNet B6** | Augmentation + CV | 640        | -      | **0.9420** | **0.8840** |
+| **EfficientNet B6** | Augmentation + CV | 736        | -      | 0.9407   | 0.8814 |
 
 ### Three Classes Classification
 
@@ -115,9 +115,9 @@ The dataset consists of more than 15,000 images for binary classification and ar
 | **ResNet50**    | Full Augmentation   | 512        | 0.1423 | 0.9654   | 0.9375 |
 | **ResNext50**   | Full Augmentation   | 512        | 0.1577 | 0.9693   | 0.9450 |
 | **ResNext50**   | Full Augmentation   | 640        | **0.1413** | 0.9685   | 0.9434 |
-| **EfficientNet** B6 | Augmentation + CV | 512        | -      | 0.9709   | 0.9475 |
-| **EfficientNet** B6 | Augmentation + CV | 640        | -      | 0.9646   | 0.9360 |
-| **EfficientNet** B6 | Augmentation + CV | 736        | -      | **0.9827** | **0.9688** |
+| **EfficientNet B6** | Augmentation + CV | 512        | -      | 0.9709   | 0.9475 |
+| **EfficientNet B6** | Augmentation + CV | 640        | -      | 0.9646   | 0.9360 |
+| **EfficientNet B6** | Augmentation + CV | 736        | -      | **0.9827** | **0.9688** |
 
 ## Results
 - The best model for binary classification is EfficientNet B6 with input size 736 and augmentation + CV, with an accuracy of 94.20% and a kappa of 0.8840.
